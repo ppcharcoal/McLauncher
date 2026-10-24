@@ -164,7 +164,8 @@ async function installAssets(version, report) {
   await download(idx.url, idxFile, { sha1: idx.sha1, size: idx.size, verify: true });
   const index = readJson(idxFile, { objects: {} });
   const objects = Object.entries(index.objects || {});
-  const jobs = objects.map(([name, o]) => ({
+  const seenHash = new Set();
+  const jobs = objects.filter(([, o]) => !seenHash.has(o.hash) && seenHash.add(o.hash)).map(([name, o]) => ({
     name, hash: o.hash, size: o.size,
     dest: path.join(P.assets, 'objects', o.hash.slice(0, 2), o.hash),
   })).filter(j => !(fs.existsSync(j.dest) && fs.statSync(j.dest).size === j.size));

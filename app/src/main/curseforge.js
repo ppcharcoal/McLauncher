@@ -133,10 +133,18 @@ async function importZip(zip, { name, iconUrl, source, report = () => {} } = {})
     const wanted = (manifest.files || []).filter(f => f.required !== false);
     report('Resolving modpack files');
     const fileMap = {}, modMap = {};
-    for (let i = 0; i < wanted.length; i += 100) {
-      const chunk = wanted.slice(i, i + 100);
-      for (const f of (await post('/mods/files', { fileIds: chunk.map(x => x.fileID) })).data) fileMap[f.id] = f;
-      for (const m of (await post('/mods', { modIds: chunk.map(x => x.projectID) })).data) modMap[m.id] = m;
+    if (apiKey) {
+      for (let i = 0; i < wanted.length; i += 100) {
+        const chunk = wanted.slice(i, i + 100);
+        for (const f of (await post('/mods/files', { fileIds: chunk.map(x => x.fileID) })).data) fileMap[f.id] = f;
+        for (const m of (await post('/mods', { modIds: chunk.map(x => x.projectID) })).data) modMap[m.id] = m;
+      }
+    } else {
+      // The public proxy only allows GET requests, so look files up one by one.
+      await pool(wanted, 6, async (w) => {
+        const [f, m] = await Promise.all([get(`/mods/${w.projectID}/files/${w.fileID}`), get(`/mods/${w.projectID}`)]);
+        fileMap[f.data.id] = f.data; modMap[m.data.id] = m.data;
+      }, (d, t) => report('Resolving modpack files', d / t));
     }
     const blocked = [];
     const content = instances.readContent(inst.id);
