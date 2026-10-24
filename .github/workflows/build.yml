@@ -34,8 +34,12 @@ jobs:
       - name: Unit tests
         run: npm test
       - name: Online checks (Mojang, Fabric, Modrinth, CurseForge)
-        run: node test/online.js
+        run: |
+          mkdir -p ../ci-out
+          set -o pipefail
+          node test/online.js 2>&1 | tee ../ci-out/online.txt
       - name: Launch newest Minecraft + Fabric through the launcher
+        if: always()
         env:
           MCL_TEST_OFFLINE: CiPlayer
           MCL_TEST_LAUNCH: ci-newest
@@ -47,6 +51,7 @@ jobs:
           cat "$MCL_TEST_RESULT"
           node -e "const r=require(process.env.MCL_TEST_RESULT); if(!r.reachedRunning||!r.hidden){console.error('game did not reach the running state or launcher did not close');process.exit(1)}"
       - name: Launch 1.21.1 with Sodium + Iris
+        if: always()
         env:
           MCL_TEST_OFFLINE: CiPlayer
           MCL_TEST_LAUNCH: ci-1-21-1
@@ -71,7 +76,15 @@ jobs:
           cp "$MCL_DATA_DIR/online-results.json" ../ci-out/ 2>/dev/null || true
           cp ../launch-*.json ../ci-out/ 2>/dev/null || true
           cp -r ../shots ../ci-out/ 2>/dev/null || true
-      - uses: actions/upload-artifact@v4
+          find "$MCL_DATA_DIR/instances" -path '*crash-reports*' -name '*.txt' -exec cp {} ../ci-out/ \; 2>/dev/null || true
+      - name: Publish test output to the ci-logs branch
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          cd ../ci-out
+          git init -q -b ci-logs
+          git -c user.name=ci -c user.email=ci@localhost add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "CI output ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-logs      - uses: actions/upload-artifact@v4
         if: always()
         with:
           name: test-output
@@ -121,3 +134,4 @@ jobs:
         run: |
           ls -la dist
           gh release create "${GITHUB_REF_NAME}" dist/* --title "McLauncher ${GITHUB_REF_NAME}" --notes-file RELEASE_NOTES.md
+          git push -q --delete origin ci-logs || true
