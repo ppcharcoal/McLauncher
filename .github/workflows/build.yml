@@ -20,8 +20,8 @@ jobs:
     env:
       MCL_DATA_DIR: ${{ github.workspace }}/ci-data
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -96,7 +96,7 @@ jobs:
           git -c user.name=ci -c user.email=ci@localhost add -A
           git -c user.name=ci -c user.email=ci@localhost commit -qm "CI output ${GITHUB_SHA}"
           git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-logs
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: always()
         with:
           name: test-output
@@ -109,8 +109,8 @@ jobs:
       run:
         working-directory: app
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -122,7 +122,7 @@ jobs:
         run: npx electron-builder --linux pacman AppImage tar.gz --x64 --publish never
       - name: List output
         run: ls -la dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: linux-packages
           path: |
@@ -140,8 +140,8 @@ jobs:
     env:
       MCL_DATA_DIR: ${{ github.workspace }}\ci-data
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -206,8 +206,8 @@ jobs:
         working-directory: app
         shell: bash
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
         with:
           node-version: 22
           cache: npm
@@ -216,7 +216,7 @@ jobs:
       - name: Build Windows installer and portable exe
         run: npx electron-builder --win nsis portable --x64 --publish never
       - run: ls -la dist
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: windows-packages
           path: |
@@ -229,12 +229,12 @@ jobs:
     needs: [test, build, test-windows, build-windows]
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/download-artifact@v4
+      - uses: actions/checkout@v5
+      - uses: actions/download-artifact@v5
         with:
           name: linux-packages
           path: dist
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v5
         with:
           name: windows-packages
           path: dist
