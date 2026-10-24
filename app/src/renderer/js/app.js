@@ -21,7 +21,7 @@ const App = {
     const chip = document.getElementById('account-chip');
     const acc = await U.call('accounts');
     const a = acc.list.find(x => x.id === acc.active);
-    chip.replaceChildren(a ? U.skinHead(a.skin, a.name) : (() => { const c = document.createElement('canvas'); return c; })(),
+    chip.replaceChildren(a ? U.skinHead(a.skin, a.name) : U.h('span', { style: { width: '28px', height: '28px', display: 'grid', placeItems: 'center', borderRadius: '5px', background: 'var(--raised)', color: 'var(--muted)', flex: 'none' } }, U.svg('user')),
       U.h('span.who', U.h('b', a ? a.name : 'Sign in'), U.h('small', a ? 'Microsoft account' : 'to play online')));
     this.account = a || null;
   },

@@ -96,12 +96,13 @@ async function installVersion(instId, v, kind, info = {}, seen = new Set(), repo
   if (!title) { try { const m = (await get(`/mods/${v.projectId}`)).data; title = m.name; icon = m.logo && m.logo.thumbnailUrl; } catch {} }
   instances.recordFile(instId, `${folder}/${v.fileName}`, { source: 'curseforge', projectId: v.projectId, versionId: v.id, title: title || v.fileName, iconUrl: icon || null, sha1: v.sha1 });
   const out = [title || v.fileName];
+  if (folder === 'mods') { try { instances.dedupeMod(instId, v.fileName); } catch {} }
   for (const d of v.dependencies) {
     if (d.relationType !== 3) continue;
     const depId = String(d.modId);
     if (seen.has(depId) || Object.values(instances.readContent(instId).files).some(e => e.projectId === depId)) continue;
     const list = await versions(depId, { type: 'mod', gameVersion: inst.mcVersion });
-    const pick = list.find(x => x.type === 'release') || list[0];
+    const pick = list.find(x => x.type !== 'alpha') || list[0];
     if (pick) out.push(...await installVersion(instId, pick, 'mod', {}, seen, report));
   }
   return out;
@@ -110,7 +111,7 @@ async function installVersion(instId, v, kind, info = {}, seen = new Set(), repo
 async function installProject(instId, projectId, kind, info = {}, report) {
   const inst = instances.get(instId);
   const list = await versions(projectId, { type: kind, gameVersion: inst.mcVersion });
-  const pick = list.find(v => v.type === 'release') || list[0];
+  const pick = list.find(v => v.type !== 'alpha') || list[0];
   if (!pick) throw new Error(`No file of ${info.title || 'this project'} supports Minecraft ${inst.mcVersion}${kind === 'mod' ? ' with Fabric' : ''}.`);
   return installVersion(instId, pick, kind, info, new Set(), report);
 }

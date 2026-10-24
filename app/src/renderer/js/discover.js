@@ -23,7 +23,12 @@ Pages.discover = async (main, route) => {
     installed = new Map();
     const t = target();
     if (!t || DISC.type === 'modpack') return;
-    try { for (const it of await U.call('content', t.id, TYPE_FOLDER[DISC.type])) if (it.projectId) installed.set(String(it.projectId), true); } catch {}
+    try {
+      for (const it of await U.call('content', t.id, TYPE_FOLDER[DISC.type])) {
+        if (it.projectId) installed.set(String(it.projectId), true);
+        if (it.title) installed.set('t:' + it.title.toLowerCase(), true);
+      }
+    } catch {}
   }
 
   const srcSeg = h('div.segmented', ['modrinth', 'curseforge'].map(s => h('button' + (DISC.source === s ? '.on' : ''), { type: 'button', on: { click: () => { DISC.source = s; DISC.offset = 0; if (!SORTS[s].some(x => x[0] === DISC.sort)) DISC.sort = 'relevance'; build(); } } }, s === 'modrinth' ? 'Modrinth' : 'CurseForge')));
@@ -106,7 +111,7 @@ Pages.discover = async (main, route) => {
   }
 
   function renderHit(p) {
-    const isInstalled = installed.has(String(p.id));
+    const isInstalled = installed.has(String(p.id)) || installed.has('t:' + p.title.toLowerCase());
     const btn = installButton(p, isInstalled);
     return h('div.result', { tabindex: 0, on: { click: () => openDrawer(p), keydown: (e) => { if (e.key === 'Enter' && e.target.classList.contains('result')) openDrawer(p); } } },
       p.icon ? h('img.ico', { src: p.icon, alt: '', loading: 'lazy' }) : h('div.ico'),

@@ -254,6 +254,7 @@ select.input option { background: var(--panel); }
 .radio-list button.on i { background: var(--copper); }
 .radio-list .note { font-size: 12px; color: var(--faint); padding: 4px 10px; }
 .target { display: flex; align-items: center; gap: 10px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-m); padding: 8px 10px 8px 14px; }
+.target > span { white-space: nowrap; }
 .target select { border: 0; background-color: transparent; height: 32px; }
 .results { display: flex; flex-direction: column; gap: 10px; }
 .result { display: flex; gap: 16px; padding: 14px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius-m); cursor: pointer; align-items: flex-start; }

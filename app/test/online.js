@@ -105,6 +105,8 @@ const report = () => {};
     const hit = r.hits.find(h => /mod ?menu/i.test(h.title)) || r.hits[0];
     try {
       const installed = await curseforge.installProject(old.id, hit.id, 'mod', { title: hit.title }, report);
+      const fapi = instances.listContent(old.id, 'mods').filter(m => /fabric api/i.test(m.title));
+      assert.strictEqual(fapi.length, 1, 'Fabric API installed twice: ' + fapi.map(m => m.file));
       return { installed };
     } catch (e) {
       if (e.blocked) return { blocked: e.blocked };

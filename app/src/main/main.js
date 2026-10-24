@@ -127,6 +127,7 @@ async function launchInstance(instId, opts = {}) {
     if (closeLauncher && win && !win.isDestroyed()) { hidden = true; win.destroy(); }
   };
   const readyTimer = setTimeout(markRunning, 45000);
+  if (process.env.MCL_TEST_EXIT_AFTER_READY) setTimeout(() => { try { s.proc.kill('SIGKILL'); } catch {} }, 300000);
   const flush = setInterval(() => { if (s.pending.length) { send('log', { instId, lines: s.pending }); s.pending = []; } }, 150);
 
   s.proc = launch.start(prep, settings, {
@@ -159,7 +160,7 @@ async function launchInstance(instId, opts = {}) {
       if (hidden || !win || win.isDestroyed()) createWindow({ page: 'instance', id: instId, tab: 'logs' });
       else send('session', sessionInfo(s));
       if (process.env.MCL_TEST_RESULT) {
-        fs.writeFileSync(process.env.MCL_TEST_RESULT, JSON.stringify({ code, reachedRunning: hidden || s.lines.some(l => /Sound engine started|Backend library/.test(l)), hidden, lines: s.lines.length, tail: s.lines.slice(-40) }, null, 2));
+        fs.writeFileSync(process.env.MCL_TEST_RESULT, JSON.stringify({ code, reachedRunning: hidden || s.lines.some(l => /Sound engine started|Backend library/.test(l)), started: s.lines.some(l => /Setting user:|Loading Minecraft .* with Fabric/.test(l)), hidden, lines: s.lines.length, tail: s.lines.slice(-40) }, null, 2));
         setTimeout(() => app.quit(), 4000);
       }
     },

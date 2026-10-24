@@ -211,7 +211,24 @@ function listDir(id, rel = '') {
 }
 function resolvePath(id, rel = '') { return safeJoin(gameDir(id), rel); }
 
+/** After installing a mod, remove other jars that contain the same Fabric mod id (e.g. Fabric API from both sources). */
+function dedupeMod(id, fileName) {
+  const dir = path.join(gameDir(id), 'mods');
+  const items = listContent(id, 'mods');
+  const c = readContent(id);
+  const meta = (it) => c.meta[`${it.file.replace(/\.disabled$/, '')}|${it.size}|${it.mtime | 0}`] || {};
+  const added = items.find(it => it.file === fileName);
+  if (!added || !meta(added).modId) return;
+  for (const it of items) {
+    if (it.file === fileName || meta(it).modId !== meta(added).modId) continue;
+    fs.rmSync(path.join(dir, it.file), { force: true });
+    delete c.files[it.rel];
+  }
+  writeContent(id, c);
+}
+
 module.exports = {
+  dedupeMod,
   FOLDERS, list, get, create, update, remove, duplicate, setIcon, dirOf, gameDir,
   readContent, writeContent, recordFile, listContent, toggleContent, deleteContent, addFiles, listDir, resolvePath, slug, fabricMeta,
 };

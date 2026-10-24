@@ -100,6 +100,7 @@ async function installVersion(instId, version, kind, info = {}, seen = new Set()
     source: 'modrinth', projectId, versionId: version.id, title: meta.title || file.filename, iconUrl: meta.icon || null, slug: meta.slug, env: meta.env, sha1: file.hashes && file.hashes.sha1,
   });
   installed.push(meta.title || file.filename);
+  if (folder === 'mods') { try { instances.dedupeMod(instId, file.filename); } catch {} }
 
   for (const dep of version.dependencies || []) {
     if (dep.dependency_type !== 'required') continue;
@@ -113,7 +114,7 @@ async function installVersion(instId, version, kind, info = {}, seen = new Set()
         depVersion = { ...v, projectId: v.project_id };
       } else if (depProject) {
         const list = await versions(depProject, { type: kind === 'mod' ? 'mod' : kind, gameVersion: inst.mcVersion });
-        depVersion = list.find(v => v.type === 'release') || list[0];
+        depVersion = list.find(v => v.type !== 'alpha') || list[0];
       }
     } catch {}
     if (depVersion) installed.push(...await installVersion(instId, depVersion, kind, {}, seen, report));
@@ -125,7 +126,7 @@ async function installVersion(instId, version, kind, info = {}, seen = new Set()
 async function installProject(instId, projectId, kind, info = {}, report) {
   const inst = instances.get(instId);
   const list = await versions(projectId, { type: kind, gameVersion: inst.mcVersion });
-  let pick = list.find(v => v.type === 'release') || list[0];
+  let pick = list.find(v => v.type !== 'alpha') || list[0];
   if (kind === 'shader') pick = list.find(v => v.loaders.includes('iris')) || pick;
   if (!pick) throw new Error(`No version of ${info.title || 'this project'} supports Minecraft ${inst.mcVersion}${kind === 'mod' ? ' with Fabric' : ''}.`);
   const out = await installVersion(instId, pick, kind, info, new Set(), report);
