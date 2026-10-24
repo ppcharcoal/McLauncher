@@ -6,6 +6,7 @@ const { P, ensure } = require('./paths');
 const { download, pool, VERSION } = require('./net');
 const mojang = require('./mojang');
 const fabric = require('./fabric');
+const forge = require('./forge');
 const instances = require('./instances');
 
 const PERF_FLAGS = [
@@ -29,39 +30,59 @@ function expandArgs(list, vars, features) {
   return out;
 }
 
-/** Resolve the merged version json for an instance (downloads metadata only). */
-async function resolveVersion(inst) {
+const LOADER_NAMES = { fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge' };
+
+async function pickLoaderVersion(inst) {
+  if (inst.loaderVersion) return inst.loaderVersion;
+  const list = inst.loader === 'fabric' ? await fabric.loaderVersions(inst.mcVersion) : await forge.loaderVersions(inst.loader, inst.mcVersion);
+  const pick = list.find(l => l.recommended) || list.find(l => l.stable) || list[0];
+  if (!pick) throw new Error(`${LOADER_NAMES[inst.loader]} does not support Minecraft ${inst.mcVersion}.`);
+  instances.update(inst.id, { loaderVersion: pick.version });
+  return pick.version;
+}
+
+/** Resolve the merged version json for an instance, installing the mod loader if needed. */
+async function resolveVersion(inst, java, report = () => {}) {
   const vanilla = await mojang.getVanillaJson(inst.mcVersion);
-  if (inst.loader !== 'fabric') return { version: { ...vanilla, clientId: vanilla.id }, vanilla };
-  let loaderVersion = inst.loaderVersion;
-  if (!loaderVersion) {
-    const list = await fabric.loaderVersions(inst.mcVersion);
-    const pick = list.find(l => l.stable) || list[0];
-    if (!pick) throw new Error(`Fabric does not support Minecraft ${inst.mcVersion} yet.`);
-    loaderVersion = pick.version;
-    instances.update(inst.id, { loaderVersion });
+  if (!LOADER_NAMES[inst.loader]) return { version: { ...vanilla, clientId: vanilla.id }, vanilla };
+  const loaderVersion = await pickLoaderVersion(inst);
+  if (inst.loader === 'fabric') {
+    const profile = await fabric.getProfile(inst.mcVersion, loaderVersion);
+    return { version: mojang.mergeVersions(profile, vanilla), vanilla };
   }
-  const profile = await fabric.getProfile(inst.mcVersion, loaderVersion);
-  return { version: mojang.mergeVersions(profile, vanilla), vanilla };
+  const id = await forge.ensureInstalled(inst.loader, loaderVersion, inst.mcVersion, java, report);
+  const child = JSON.parse(fs.readFileSync(path.join(P.versions, id, `${id}.json`), 'utf8'));
+  return { version: mojang.mergeVersions(child, vanilla), vanilla, ownJar: true };
+}
+
+async function resolveJava(inst, settings, vanilla, report) {
+  let java = inst.javaPath || settings.javaPath || '';
+  if (!java) {
+    const component = (vanilla.javaVersion && vanilla.javaVersion.component) || 'jre-legacy';
+    java = await mojang.installJava(component, report);
+    if (!java) java = process.platform === 'win32' ? 'javaw' : 'java';
+  }
+  return java;
 }
 
 /** Download everything needed and build the java command line. */
 async function prepare(inst, account, settings, report) {
   report('Checking game files');
-  const { version, vanilla } = await resolveVersion(inst);
-  const clientJar = await mojang.installClient(vanilla, report);
+  // Java first: Forge/NeoForge installation runs Java tools.
+  const java = await resolveJava(inst, settings, await mojang.getVanillaJson(inst.mcVersion), report);
+  const { version, vanilla, ownJar } = await resolveVersion(inst, java, report);
+  let clientJar = await mojang.installClient(vanilla, report);
+  if (ownJar) {
+    // Forge 1.17+ expects the game jar to be named after the Forge version (versions/<id>/<id>.jar).
+    const named = path.join(P.versions, version.id, `${version.id}.jar`);
+    if (!fs.existsSync(named) || fs.statSync(named).size !== fs.statSync(clientJar).size) fs.copyFileSync(clientJar, named);
+    clientJar = named;
+  }
   const plan = mojang.planLibraries(version);
   const libJobs = plan.jobs.filter(j => !(fs.existsSync(j.dest) && (j.size == null || fs.statSync(j.dest).size === j.size)));
   if (libJobs.length) await pool(libJobs, 8, j => download(j.url, j.dest, { sha1: j.sha1, size: j.size }), (d, t) => report('Downloading libraries', d / t));
   const assetInfo = await mojang.installAssets(version, report);
 
-  // Java: instance override > global override > Mojang runtime for this version
-  let java = inst.javaPath || settings.javaPath || '';
-  if (!java) {
-    const component = (version.javaVersion && version.javaVersion.component) || 'jre-legacy';
-    java = await mojang.installJava(component, report);
-    if (!java) java = process.platform === 'win32' ? 'javaw' : 'java';
-  }
 
   const gameDir = instances.gameDir(inst.id);
   const nativesDir = path.join(P.root, 'natives', inst.id);

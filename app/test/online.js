@@ -13,6 +13,7 @@ const modrinth = require('../src/main/modrinth');
 const curseforge = require('../src/main/curseforge');
 const packs = require('../src/main/packs');
 const launch = require('../src/main/launch');
+const forge = require('../src/main/forge');
 
 const results = {};
 const step = async (name, fn) => {
@@ -150,6 +151,67 @@ const report = () => {};
     const b = instances.listContent(back.instance.id, 'mods').length;
     assert.strictEqual(a, b);
     return { ...r, reimported: back.instance.id, mods: b };
+  });
+
+
+  // ---- Forge / NeoForge ----
+  const OFFLINE = { id: '0'.repeat(32), name: 'CiPlayer', mcToken: '0', offline: true };
+  await step('forge + neoforge version lists', async () => {
+    const fg = await forge.gameVersions('forge');
+    const nf = await forge.gameVersions('neoforge');
+    for (const v of ['1.20.1', '1.12.2', '1.7.10']) assert.ok(fg.includes(v), 'forge missing ' + v);
+    for (const v of ['1.21.1', '1.20.1']) assert.ok(nf.includes(v), 'neoforge missing ' + v);
+    const manifest = await mojang.getManifest();
+    const ids = new Set(manifest.versions.map(v => v.id));
+    const unknown = nf.filter(v => !ids.has(v));
+    assert.ok(unknown.length <= 3, 'neoforge → minecraft mapping looks wrong: ' + unknown.join(', '));
+    const f1201 = await forge.loaderVersions('forge', '1.20.1');
+    const n1211 = await forge.loaderVersions('neoforge', '1.21.1');
+    return { forgeMc: fg.length, neoMc: nf.slice(-4), unknownNeo: unknown, forge1201: f1201.slice(0, 2), neo1211: n1211.slice(0, 2) };
+  });
+  const loaderInst = async (name, loader, mc) => {
+    const list = await forge.loaderVersions(loader, mc);
+    const pick = list.find(l => l.recommended) || list.find(l => l.stable) || list[0];
+    return instances.create({ name, mcVersion: mc, loader, loaderVersion: pick.version, memory: 3072 });
+  };
+  const loaderCases = [['CI NeoForge', 'neoforge', '1.21.1'], ['CI Forge', 'forge', '1.20.1'], ['CI Forge Legacy', 'forge', '1.12.2']];
+  for (const [name, loader, mc] of loaderCases) {
+    await step(`install ${loader} for ${mc}`, async () => {
+      const inst = await loaderInst(name, loader, mc);
+      const t = Date.now();
+      const p = await launch.prepare(instances.get(inst.id), OFFLINE, { memory: 3072 }, () => {});
+      assert.ok(p.versionId.toLowerCase().includes(loader === 'neoforge' ? 'neoforge' : 'forge') || p.versionId.includes('forge'), 'version id ' + p.versionId);
+      return { id: inst.id, loaderVersion: instances.get(inst.id).loaderVersion, versionId: p.versionId, seconds: Math.round((Date.now() - t) / 1000), args: p.args.length };
+    });
+  }
+  await step('modrinth: mods for neoforge (Sodium) and forge (JEI) + forge shader (auto Oculus)', async () => {
+    const a = await modrinth.installProject('ci-neoforge', 'sodium', 'mod', {}, report);
+    const b = await modrinth.installProject('ci-forge', 'jei', 'mod', {}, report);
+    const c = await modrinth.installProject('ci-forge', 'complementary-reimagined', 'shader', {}, report);
+    const neoMods = instances.listContent('ci-neoforge', 'mods').map(m => `${m.title} ${m.modVersion || ''}`);
+    const forgeMods = instances.listContent('ci-forge', 'mods').map(m => `${m.title} ${m.modVersion || ''}`);
+    assert.ok(forgeMods.some(t => /oculus/i.test(t)), 'Oculus not installed: ' + forgeMods);
+    return { a, b, c, neoMods, forgeMods };
+  });
+  await step('curseforge: forge mod (Mouse Tweaks) into Forge 1.20.1', async () => {
+    try { return await curseforge.installProject('ci-forge', '60089', 'mod', { title: 'Mouse Tweaks' }, report); }
+    catch (e) { if (e.blocked) return { blocked: e.blocked }; throw e; }
+  });
+  await step('modrinth search with forge/neoforge loaders', async () => {
+    const r1 = await modrinth.search({ type: 'mod', gameVersion: '1.20.1', loader: 'forge' });
+    const r2 = await modrinth.search({ type: 'mod', gameVersion: '1.21.1', loader: 'neoforge' });
+    const r3 = await modrinth.search({ type: 'modpack', loader: 'neoforge' });
+    const c1 = await curseforge.search({ type: 'mod', gameVersion: '1.20.1', loader: 'forge' });
+    assert.ok(r1.hits.length && r2.hits.length && r3.hits.length && c1.hits.length);
+    return { forge: r1.hits[0].title, neo: r2.hits[0].title, neoPack: r3.hits[0].title + ' ' + r3.hits[0].loaders, cfForge: c1.hits[0].title };
+  });
+  await step('export forge .mrpack and import it back', async () => {
+    const out = path.join(process.env.MCL_DATA_DIR, 'forge.mrpack');
+    const r = await modrinth.exportMrpack('ci-forge', out, { include: ['mods', 'shaderpacks'], name: 'CI Forge Export', version: '1' });
+    const back = await packs.importFile(out);
+    assert.strictEqual(back.instance.loader, 'forge');
+    assert.strictEqual(back.instance.loaderVersion, instances.get('ci-forge').loaderVersion);
+    return { ...r, imported: back.instance.id, loaderVersion: back.instance.loaderVersion };
   });
 
   fs.writeFileSync(path.join(process.env.MCL_DATA_DIR, 'online-results.json'), JSON.stringify({ newest: newest && newest.id, old: old && old.id, results }, null, 2));

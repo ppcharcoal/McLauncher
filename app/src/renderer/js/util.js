@@ -84,7 +84,15 @@ U.duration = (sec) => {
   const h = Math.floor(sec / 3600), m = Math.floor((sec % 3600) / 60);
   return h ? `${h} h ${m} min played` : `${Math.max(1, m)} min played`;
 };
-U.loaderLabel = (i) => i.loader === 'fabric' ? 'Fabric' : 'Vanilla';
+U.loaderLabel = (i) => ({ fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge' })[i.loader] || 'Vanilla';
+/** "Forge 47.3.0" style label for an instance's loader. */
+U.loaderVersionLabel = (i) => {
+  if (!i.loader || i.loader === 'vanilla') return 'Vanilla';
+  let v = i.loaderVersion || 'latest';
+  if (i.loader === 'forge' && v.startsWith(i.mcVersion + '-')) v = v.slice(i.mcVersion.length + 1).replace('-' + i.mcVersion, '');
+  if (i.loader === 'neoforge') v = v.replace(/^1\.20\.1-/, '');
+  return `${U.loaderLabel(i)} ${v}`;
+};
 
 U.hash = (s) => { let h = 2166136261; for (const c of String(s)) { h ^= c.charCodeAt(0); h = Math.imul(h, 16777619); } return h >>> 0; };
 

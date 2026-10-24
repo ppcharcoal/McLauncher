@@ -18,7 +18,8 @@ const CLASS = { mod: 6, resourcepack: 12, shader: 6552, modpack: 4471 };
 const CLASS_FOLDER = { 6: 'mods', 12: 'resourcepacks', 6552: 'shaderpacks' };
 const KIND_FOLDER = { mod: 'mods', resourcepack: 'resourcepacks', shader: 'shaderpacks' };
 const LIBRARY_CATEGORY = 421; // "API and Library"
-const FABRIC = 4;
+const LOADER_TYPE = { forge: 1, fabric: 4, neoforge: 6 };
+const LOADER_NAMES = { fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge' };
 const SORT = { relevance: 2, downloads: 6, follows: 2, newest: 11, updated: 3 };
 
 function sha1Of(file) { const h = (file.hashes || []).find(x => x.algo === 1); return h ? h.value : undefined; }
@@ -27,10 +28,11 @@ function pageUrl(mod, fileId) {
   return `https://www.curseforge.com/minecraft/${seg}/${mod.slug}${fileId ? '/files/' + fileId : ''}`;
 }
 
-async function search({ query = '', type = 'mod', gameVersion = '', env = 'all', offset = 0, sort = 'relevance', limit = 20 }) {
+async function search({ query = '', type = 'mod', gameVersion = '', env = 'all', offset = 0, sort = 'relevance', limit = 20, loader = 'fabric' }) {
   const params = { gameId: GAME, classId: CLASS[type], searchFilter: query, index: offset, pageSize: limit, sortField: SORT[sort] || 1, sortOrder: 'desc' };
   if (gameVersion) params.gameVersion = gameVersion;
-  if (type === 'mod' || type === 'modpack') params.modLoaderType = FABRIC;
+  if (type === 'mod' && LOADER_TYPE[loader]) params.modLoaderType = LOADER_TYPE[loader];
+  if (type === 'modpack' && LOADER_TYPE[loader]) params.modLoaderType = LOADER_TYPE[loader];
   if (type === 'mod' && env === 'library') params.categoryId = LIBRARY_CATEGORY;
   const res = await get('/mods/search?' + new URLSearchParams(params));
   return {
@@ -57,11 +59,16 @@ async function project(id) {
   };
 }
 
-async function versions(id, { type = 'mod', gameVersion = '' } = {}) {
+async function versions(id, { type = 'mod', gameVersion = '', loader = 'fabric' } = {}) {
   const params = { pageSize: 50 };
   if (gameVersion) params.gameVersion = gameVersion;
-  if (type === 'mod' || type === 'modpack') params.modLoaderType = FABRIC;
-  const res = await get(`/mods/${id}/files?` + new URLSearchParams(params));
+  if (type === 'mod' && LOADER_TYPE[loader]) params.modLoaderType = LOADER_TYPE[loader];
+  let res = await get(`/mods/${id}/files?` + new URLSearchParams(params));
+  // NeoForge on 1.20.1 runs Forge mods too.
+  if (type === 'mod' && loader === 'neoforge' && gameVersion === '1.20.1' && !res.data.length) {
+    params.modLoaderType = LOADER_TYPE.forge;
+    res = await get(`/mods/${id}/files?` + new URLSearchParams(params));
+  }
   return res.data.map(f => ({
     id: String(f.id), name: f.displayName, number: f.displayName, type: ['', 'release', 'beta', 'alpha'][f.releaseType] || 'release',
     gameVersions: f.gameVersions, date: f.fileDate, fileName: f.fileName, downloadUrl: f.downloadUrl, sha1: sha1Of(f), size: f.fileLength,
@@ -101,7 +108,7 @@ async function installVersion(instId, v, kind, info = {}, seen = new Set(), repo
     if (d.relationType !== 3) continue;
     const depId = String(d.modId);
     if (seen.has(depId) || Object.values(instances.readContent(instId).files).some(e => e.projectId === depId)) continue;
-    const list = await versions(depId, { type: 'mod', gameVersion: inst.mcVersion });
+    const list = await versions(depId, { type: 'mod', gameVersion: inst.mcVersion, loader: inst.loader });
     const pick = list.find(x => x.type !== 'alpha') || list[0];
     if (pick) out.push(...await installVersion(instId, pick, 'mod', {}, seen, report));
   }
@@ -110,9 +117,10 @@ async function installVersion(instId, v, kind, info = {}, seen = new Set(), repo
 
 async function installProject(instId, projectId, kind, info = {}, report) {
   const inst = instances.get(instId);
-  const list = await versions(projectId, { type: kind, gameVersion: inst.mcVersion });
+  if (kind === 'mod' && !LOADER_NAMES[inst.loader]) throw new Error(`${inst.name} is a vanilla instance. Pick a mod loader in its settings to add mods.`);
+  const list = await versions(projectId, { type: kind, gameVersion: inst.mcVersion, loader: inst.loader });
   const pick = list.find(v => v.type !== 'alpha') || list[0];
-  if (!pick) throw new Error(`No file of ${info.title || 'this project'} supports Minecraft ${inst.mcVersion}${kind === 'mod' ? ' with Fabric' : ''}.`);
+  if (!pick) throw new Error(`No file of ${info.title || 'this project'} supports Minecraft ${inst.mcVersion}${kind === 'mod' ? ' with ' + LOADER_NAMES[inst.loader] : ''}.`);
   return installVersion(instId, pick, kind, info, new Set(), report);
 }
 
@@ -125,8 +133,11 @@ async function importZip(zip, { name, iconUrl, source, report = () => {} } = {})
   const primary = loaders.find(l => l.primary) || loaders[0];
   let loader = 'vanilla', loaderVersion = null;
   if (primary) {
-    if (!primary.id.startsWith('fabric-')) throw new Error(`This modpack needs ${primary.id.split('-')[0]}. McLauncher supports Fabric and vanilla only.`);
-    loader = 'fabric'; loaderVersion = primary.id.slice('fabric-'.length);
+    const [kind, ...rest] = primary.id.split('-');
+    const v = rest.join('-');
+    if (kind === 'fabric') { loader = 'fabric'; loaderVersion = v; }
+    else if (kind === 'forge' || kind === 'neoforge') { loader = kind; loaderVersion = await require('./forge').fullVersion(kind, manifest.minecraft.version, v); }
+    else throw new Error(`This modpack needs ${kind}. McLauncher supports Fabric, Forge, NeoForge and vanilla.`);
   }
   const inst = instances.create({ name: name || manifest.name || 'Modpack', mcVersion: manifest.minecraft.version, loader, loaderVersion, source: source || { type: 'curseforge-zip', name: manifest.name, version: manifest.version } });
   try {

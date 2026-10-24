@@ -13,7 +13,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 45
+    timeout-minutes: 90
     defaults:
       run:
         working-directory: app
@@ -37,7 +37,7 @@ jobs:
         run: |
           mkdir -p ../ci-out
           set -o pipefail
-          timeout 1200 node test/online.js 2>&1 | tee ../ci-out/online.txt
+          timeout 2400 node test/online.js 2>&1 | tee ../ci-out/online.txt
       - name: Publish early output
         if: always() && github.event_name != 'pull_request'
         run: |
@@ -72,6 +72,21 @@ jobs:
           tail -50 "$MCL_TEST_RESULT.out"; cp "$MCL_TEST_RESULT.out" ../ci-out/ 2>/dev/null || true
           cat "$MCL_TEST_RESULT"
           node -e "const r=require(process.env.MCL_TEST_RESULT); if(!r.reachedRunning||!r.hidden){console.error('game did not reach the running state or launcher did not close');process.exit(1)}"
+      - name: Launch NeoForge 1.21.1, Forge 1.20.1 and Forge 1.12.2
+        if: always()
+        timeout-minutes: 30
+        env:
+          MCL_TEST_OFFLINE: CiPlayer
+          MCL_TEST_EXIT_AFTER_READY: '1'
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          fail=0
+          for id in ci-neoforge ci-forge ci-forge-legacy; do
+            export MCL_TEST_LAUNCH=$id MCL_TEST_RESULT="$GITHUB_WORKSPACE/launch-$id.json"
+            timeout -k 15 540 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox > "../ci-out/launch-$id.out" 2>&1 || true
+            node -e "const r=require(process.env.MCL_TEST_RESULT); console.log(process.env.MCL_TEST_LAUNCH, {code:r.code, started:r.started, reached:r.reachedRunning, hidden:r.hidden, error:r.error}); if(!r.reachedRunning||!r.hidden) process.exit(1)" || fail=1
+          done
+          exit $fail
       - name: UI screenshots
         timeout-minutes: 6
         if: always()
@@ -132,7 +147,7 @@ jobs:
 
   test-windows:
     runs-on: windows-latest
-    timeout-minutes: 45
+    timeout-minutes: 75
     defaults:
       run:
         working-directory: app
@@ -153,7 +168,7 @@ jobs:
         run: |
           mkdir -p ../ci-out
           set -o pipefail
-          timeout 1200 node test/online.js 2>&1 | tee ../ci-out/online.txt
+          timeout 2400 node test/online.js 2>&1 | tee ../ci-out/online.txt
       - name: Software OpenGL for the runner (Mesa llvmpipe next to javaw.exe)
         if: always()
         env:
@@ -177,6 +192,18 @@ jobs:
           timeout -k 15 600 npx electron . > ../ci-out/launch-win-1211.out 2>&1 || true
           cat "$MCL_TEST_RESULT"
           node -e "const r=require(process.env.MCL_TEST_RESULT); if(!r.started){console.error('game did not start');process.exit(1)} if(!r.reachedRunning||!r.hidden) console.log('::warning::game started but did not reach the title screen on the runner')"
+      - name: Launch NeoForge 1.21.1
+        if: always()
+        timeout-minutes: 14
+        env:
+          MCL_TEST_OFFLINE: CiPlayer
+          MCL_TEST_LAUNCH: ci-neoforge
+          MCL_TEST_EXIT_AFTER_READY: '1'
+          MCL_TEST_RESULT: ${{ github.workspace }}\launch-win-neoforge.json
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          timeout -k 15 700 npx electron . > ../ci-out/launch-win-neoforge.out 2>&1 || true
+          node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, started:r.started, reached:r.reachedRunning, hidden:r.hidden, error:r.error}); if(!r.started) process.exit(1); if(!r.reachedRunning) console.log('::warning::NeoForge started but did not reach the title screen on the runner')"
       - name: UI screenshots
         if: always()
         timeout-minutes: 6

@@ -84,6 +84,7 @@ function planLibraries(version) {
   const seen = new Set();
   for (const lib of version.libraries || []) {
     if (!rulesAllow(lib.rules)) continue;
+    if (lib.clientreq === false) continue; // legacy Forge: server-only library
     const parts = lib.name.split(':');
     const classifier = parts[3];
     if (!nativeClassifierOk(classifier)) continue;
@@ -107,16 +108,20 @@ function planLibraries(version) {
     let art = lib.downloads && lib.downloads.artifact;
     if (!art) {
       const rel = mavenPath(lib.name);
-      const base = (lib.url || 'https://libraries.minecraft.net/').replace(/\/?$/, '/');
-      art = { path: rel, url: base + rel, sha1: lib.sha1, size: lib.size };
+      const base = fixMaven(lib.url || 'https://libraries.minecraft.net/').replace(/\/?$/, '/');
+      art = { path: rel, url: base + rel, sha1: lib.sha1 || (lib.checksums && lib.checksums.length === 1 ? lib.checksums[0] : undefined), size: lib.size };
     }
-    if (!art.url) continue;
     const dest = path.join(P.libraries, art.path);
-    jobs.push({ url: art.url, dest, sha1: art.sha1, size: art.size });
+    // Libraries with no URL are produced by the Forge/NeoForge installer; they are already on disk.
+    if (art.url) jobs.push({ url: fixMaven(art.url), dest, sha1: art.sha1, size: art.size });
     classpath.push(dest);
     if (classifier && classifier.startsWith('natives-')) nativeJars.push({ file: dest, exclude: ['META-INF/'] });
   }
   return { jobs, classpath, nativeJars };
+}
+
+function fixMaven(url) {
+  return url.replace(/^https?:\/\/files\.minecraftforge\.net\/maven\//, 'https://maven.minecraftforge.net/').replace(/^http:\/\//, 'https://');
 }
 
 // ---------- version install ----------
@@ -238,7 +243,7 @@ async function installJava(component, report) {
 }
 
 module.exports = {
-  OS,
+  OS, fixMaven,
   getManifest, getVanillaJson, mergeVersions, installClient, installAssets, extractNatives, installJava,
   planLibraries, rulesAllow, mavenPath, libKey, nativeClassifierOk,
 };

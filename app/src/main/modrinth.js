@@ -9,7 +9,14 @@ const API = 'https://api.modrinth.com/v2';
 const q = (o) => new URLSearchParams(o).toString();
 
 const KIND_FOLDER = { mod: 'mods', resourcepack: 'resourcepacks', shader: 'shaderpacks' };
-const KIND_LOADERS = { mod: ['fabric'], resourcepack: ['minecraft'], shader: ['iris', 'optifine', 'canvas', 'vanilla'] };
+const SUPPORTED_LOADERS = ['fabric', 'forge', 'neoforge'];
+const LOADER_NAMES = { fabric: 'Fabric', forge: 'Forge', neoforge: 'NeoForge' };
+
+/** Mod loaders whose mods run on this instance (NeoForge 1.20.1 also runs most Forge mods). */
+function modLoadersFor(loader, mc) {
+  if (loader === 'neoforge' && mc === '1.20.1') return ['neoforge', 'forge'];
+  return SUPPORTED_LOADERS.includes(loader) ? [loader] : [];
+}
 
 function envFacets(env) {
   switch (env) {
@@ -31,9 +38,10 @@ function envLabel(client, server) {
   return 'unknown';
 }
 
-async function search({ query = '', type = 'mod', gameVersion = '', env = 'all', offset = 0, sort = 'relevance', limit = 20 }) {
+async function search({ query = '', type = 'mod', gameVersion = '', env = 'all', offset = 0, sort = 'relevance', limit = 20, loader = 'fabric' }) {
   const facets = [[`project_type:${type}`]];
-  if (type === 'mod' || type === 'modpack') facets.push(['categories:fabric']);
+  if (type === 'mod') facets.push(modLoadersFor(loader, gameVersion).map(l => `categories:${l}`));
+  if (type === 'modpack') facets.push((loader && loader !== 'all' ? [loader] : SUPPORTED_LOADERS).map(l => `categories:${l}`));
   if (gameVersion) facets.push([`versions:${gameVersion}`]);
   if (type === 'mod') facets.push(...envFacets(env));
   const res = await fetchJson(`${API}/search?${q({ query, facets: JSON.stringify(facets), index: sort, offset, limit })}`);
@@ -44,6 +52,7 @@ async function search({ query = '', type = 'mod', gameVersion = '', env = 'all',
       icon: h.icon_url || null, downloads: h.downloads, follows: h.follows, categories: h.display_categories || h.categories || [],
       env: envLabel(h.client_side, h.server_side), isLibrary: (h.categories || []).includes('library'),
       gallery: h.featured_gallery || (h.gallery && h.gallery[0]) || null, type: h.project_type || type, updated: h.date_modified,
+      loaders: (h.categories || []).filter(c => LOADER_NAMES[c]).map(c => LOADER_NAMES[c]),
       url: `https://modrinth.com/${h.project_type || type}/${h.slug}`,
     })),
   };
@@ -59,9 +68,10 @@ async function project(id) {
   };
 }
 
-async function versions(id, { type = 'mod', gameVersion = '' } = {}) {
+async function versions(id, { type = 'mod', gameVersion = '', loader = '' } = {}) {
   const params = {};
-  if (type === 'mod' || type === 'modpack') params.loaders = JSON.stringify(['fabric']);
+  if (type === 'mod') params.loaders = JSON.stringify(modLoadersFor(loader || 'fabric', gameVersion));
+  if (type === 'modpack') params.loaders = JSON.stringify(LOADER_NAMES[loader] ? [loader] : SUPPORTED_LOADERS);
   if (gameVersion) params.game_versions = JSON.stringify([gameVersion]);
   const list = await fetchJson(`${API}/project/${encodeURIComponent(id)}/version?${q(params)}`);
   return list.map(v => ({
@@ -113,7 +123,7 @@ async function installVersion(instId, version, kind, info = {}, seen = new Set()
         const v = await fetchJson(`${API}/version/${dep.version_id}`);
         depVersion = { ...v, projectId: v.project_id };
       } else if (depProject) {
-        const list = await versions(depProject, { type: kind === 'mod' ? 'mod' : kind, gameVersion: inst.mcVersion });
+        const list = await versions(depProject, { type: kind === 'mod' ? 'mod' : kind, gameVersion: inst.mcVersion, loader: inst.loader });
         depVersion = list.find(v => v.type !== 'alpha') || list[0];
       }
     } catch {}
@@ -125,15 +135,20 @@ async function installVersion(instId, version, kind, info = {}, seen = new Set()
 /** Install the newest compatible version of a project. */
 async function installProject(instId, projectId, kind, info = {}, report) {
   const inst = instances.get(instId);
-  const list = await versions(projectId, { type: kind, gameVersion: inst.mcVersion });
+  if (kind === 'mod' && !LOADER_NAMES[inst.loader]) throw new Error(`${inst.name} is a vanilla instance. Pick a mod loader in its settings to add mods.`);
+  const list = await versions(projectId, { type: kind, gameVersion: inst.mcVersion, loader: inst.loader });
   let pick = list.find(v => v.type !== 'alpha') || list[0];
   if (kind === 'shader') pick = list.find(v => v.loaders.includes('iris')) || pick;
-  if (!pick) throw new Error(`No version of ${info.title || 'this project'} supports Minecraft ${inst.mcVersion}${kind === 'mod' ? ' with Fabric' : ''}.`);
+  if (!pick) throw new Error(`No version of ${info.title || 'this project'} supports Minecraft ${inst.mcVersion}${kind === 'mod' ? ' with ' + LOADER_NAMES[inst.loader] : ''}.`);
   const out = await installVersion(instId, pick, kind, info, new Set(), report);
-  if (kind === 'shader' && inst.loader === 'fabric') {
-    const hasIris = Object.values(instances.readContent(instId).files).some(e => e.slug === 'iris' || e.projectId === 'YL57xq9U');
-    if (!hasIris) {
-      try { out.push(...await installProject(instId, 'iris', 'mod', { title: 'Iris Shaders', slug: 'iris' }, report)); } catch {}
+  // Shader packs need a shader mod: Iris on Fabric/NeoForge, Oculus on Forge.
+  const companion = kind === 'shader' && { fabric: ['iris', 'Iris Shaders'], neoforge: ['iris', 'Iris Shaders'], forge: ['oculus', 'Oculus'] }[inst.loader];
+  if (companion) {
+    const files = Object.values(instances.readContent(instId).files);
+    const has = files.some(e => e.slug === companion[0] || /^(iris|oculus)/i.test(e.title || ''))
+      || instances.listContent(instId, 'mods').some(m => /^(iris|oculus)/i.test(m.title || ''));
+    if (!has) {
+      try { out.push(...await installProject(instId, companion[0], 'mod', { title: companion[1], slug: companion[0] }, report)); } catch {}
     }
   }
   return out;
@@ -209,7 +224,7 @@ async function checkUpdates(instId) {
     byKind[folder].push({ rel, sha1, e });
   }
   const out = [];
-  const loaders = { mods: ['fabric'], resourcepacks: ['minecraft'], shaderpacks: ['iris', 'optifine'] };
+  const loaders = { mods: modLoadersFor(inst.loader, inst.mcVersion), resourcepacks: ['minecraft'], shaderpacks: ['iris', 'optifine'] };
   for (const [folder, items] of Object.entries(byKind)) {
     if (!items.length) continue;
     const res = await fetchJson(`${API}/version_files/update`, {
@@ -236,11 +251,14 @@ async function readMrpackIndex(zip) {
 async function importMrpack(zip, { name, iconUrl, source, report = () => {} } = {}) {
   const index = await readMrpackIndex(zip);
   const deps = index.dependencies || {};
-  if (deps.forge || deps.neoforge) throw new Error('This modpack needs Forge/NeoForge. McLauncher supports Fabric and vanilla only.');
-  if (deps['quilt-loader']) throw new Error('This modpack needs Quilt. McLauncher supports Fabric and vanilla only.');
+  if (deps['quilt-loader']) throw new Error('This modpack needs Quilt. McLauncher supports Fabric, Forge, NeoForge and vanilla.');
+  const forge = require('./forge');
+  let loader = 'vanilla', loaderVersion = null;
+  if (deps['fabric-loader']) { loader = 'fabric'; loaderVersion = deps['fabric-loader']; }
+  else if (deps.neoforge) { loader = 'neoforge'; loaderVersion = await forge.fullVersion('neoforge', deps.minecraft, deps.neoforge); }
+  else if (deps.forge) { loader = 'forge'; loaderVersion = await forge.fullVersion('forge', deps.minecraft, deps.forge); }
   const inst = instances.create({
-    name: name || index.name || 'Modpack', mcVersion: deps.minecraft,
-    loader: deps['fabric-loader'] ? 'fabric' : 'vanilla', loaderVersion: deps['fabric-loader'] || null,
+    name: name || index.name || 'Modpack', mcVersion: deps.minecraft, loader, loaderVersion,
     source: source || { type: 'mrpack', name: index.name, version: index.versionId },
   });
   try {
@@ -330,6 +348,7 @@ async function exportMrpack(instId, outFile, { include, name, version = '1.0.0',
   }
   const dependencies = { minecraft: inst.mcVersion };
   if (inst.loader === 'fabric' && inst.loaderVersion) dependencies['fabric-loader'] = inst.loaderVersion;
+  if ((inst.loader === 'forge' || inst.loader === 'neoforge') && inst.loaderVersion) dependencies[inst.loader] = require('./forge').shortVersion(inst.loader, inst.mcVersion, inst.loaderVersion);
   const index = { formatVersion: 1, game: 'minecraft', versionId: version, name: name || inst.name, summary, files, dependencies };
   zip.addFile('modrinth.index.json', Buffer.from(JSON.stringify(index, null, 2)));
   report('Writing file');
@@ -338,6 +357,6 @@ async function exportMrpack(instId, outFile, { include, name, version = '1.0.0',
 }
 
 module.exports = {
-  search, project, versions, installVersion, installProject, identifyInstance, checkUpdates,
+  modLoadersFor, LOADER_NAMES, search, project, versions, installVersion, installProject, identifyInstance, checkUpdates,
   importMrpack, installModpack, exportMrpack, envFacets, envLabel, extractOverrides, KIND_FOLDER,
 };

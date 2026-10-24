@@ -109,25 +109,55 @@ function recordFile(id, rel, info) {
   writeContent(id, c);
 }
 
-function fabricMeta(file, id) {
+function saveIcon(zip, entryPath, file) {
+  const ie = entryPath && zip.getEntry(entryPath.replace(/^\//, ''));
+  if (!ie) return null;
+  const name = crypto.createHash('sha1').update(file).digest('hex').slice(0, 16) + '.png';
+  fs.writeFileSync(path.join(ensure(path.join(P.cache, 'modicons')), name), ie.getData());
+  return `mcl://cache/modicons/${name}`;
+}
+
+/** Read a string value `key = "..."` (or '...', or """...""") from a TOML snippet. */
+function tomlStr(src, key) {
+  const m = new RegExp(`^\\s*${key}\\s*=\\s*(?:"""([\\s\\S]*?)"""|"([^"]*)"|'([^']*)')`, 'm').exec(src);
+  return m ? (m[1] ?? m[2] ?? m[3]) : null;
+}
+
+/** Read name/version/icon from a mod jar: Fabric (fabric.mod.json), Forge/NeoForge (mods.toml), legacy Forge (mcmod.info). */
+function fabricMeta(file) {
   try {
     const zip = new AdmZip(file);
-    const e = zip.getEntry('fabric.mod.json');
-    if (!e) return {};
-    const j = JSON.parse(e.getData().toString('utf8').replace(/^﻿/, ''));
-    let icon = null;
-    const iconPath = typeof j.icon === 'string' ? j.icon : (j.icon && Object.values(j.icon).pop());
-    if (iconPath) {
-      const ie = zip.getEntry(iconPath.replace(/^\//, ''));
-      if (ie) {
-        const name = crypto.createHash('sha1').update(file).digest('hex').slice(0, 16) + '.png';
-        const dest = path.join(ensure(path.join(P.cache, 'modicons')), name);
-        fs.writeFileSync(dest, ie.getData());
-        icon = `mcl://cache/modicons/${name}`;
-      }
+    const fe = zip.getEntry('fabric.mod.json');
+    if (fe) {
+      const j = JSON.parse(fe.getData().toString('utf8').replace(/^﻿/, ''));
+      const iconPath = typeof j.icon === 'string' ? j.icon : (j.icon && Object.values(j.icon).pop());
+      return { modId: j.id, title: j.name || j.id, version: j.version, description: j.description || '', icon: saveIcon(zip, iconPath, file), env: j.environment || '*', loader: 'fabric' };
     }
-    const env = j.environment || '*';
-    return { modId: j.id, title: j.name || j.id, version: j.version, description: j.description || '', icon, env };
+    const te = zip.getEntry('META-INF/neoforge.mods.toml') || zip.getEntry('META-INF/mods.toml');
+    if (te) {
+      const toml = te.getData().toString('utf8');
+      const block = (toml.split(/^\s*\[\[mods\]\]\s*$/m)[1] || '').split(/^\s*\[/m)[0];
+      let version = tomlStr(block, 'version');
+      if (!version || version.includes('${')) {
+        const mf = zip.getEntry('META-INF/MANIFEST.MF');
+        const m = mf && /^Implementation-Version:\s*(.+)$/m.exec(mf.getData().toString('utf8'));
+        version = m ? m[1].trim() : null;
+      }
+      const logo = tomlStr(block, 'logoFile') || tomlStr(toml, 'logoFile');
+      return {
+        modId: tomlStr(block, 'modId'), title: tomlStr(block, 'displayName') || tomlStr(block, 'modId'), version,
+        description: (tomlStr(block, 'description') || '').trim(), icon: saveIcon(zip, logo, file), env: '*',
+        loader: te.entryName.includes('neoforge') ? 'neoforge' : 'forge',
+      };
+    }
+    const me = zip.getEntry('mcmod.info');
+    if (me) {
+      let j = JSON.parse(me.getData().toString('utf8').replace(/^﻿/, '').replace(/\n/g, ' '));
+      if (j.modList) j = j.modList;
+      const m = Array.isArray(j) ? j[0] : j;
+      if (m) return { modId: m.modid, title: m.name || m.modid, version: m.version, description: m.description || '', icon: saveIcon(zip, m.logoFile, file), env: '*', loader: 'forge' };
+    }
+    return {};
   } catch { return {}; }
 }
 

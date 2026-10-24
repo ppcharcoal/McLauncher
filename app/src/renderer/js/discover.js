@@ -1,7 +1,9 @@
 'use strict';
 window.Pages = window.Pages || {};
 
-const DISC = { source: 'modrinth', type: 'mod', query: '', env: 'all', gameVersion: null, sort: 'relevance', offset: 0, target: null };
+const DISC = { source: 'modrinth', type: 'mod', query: '', env: 'all', gameVersion: null, sort: 'relevance', offset: 0, target: null, packLoader: 'all' };
+const PACK_LOADERS = [['all', 'Any loader'], ['fabric', 'Fabric'], ['forge', 'Forge'], ['neoforge', 'NeoForge']];
+const loaderOf = (t) => (t && ['fabric', 'forge', 'neoforge'].includes(t.loader) ? t.loader : 'fabric');
 const TYPES = [['mod', 'Mods'], ['resourcepack', 'Resource packs'], ['shader', 'Shaders'], ['modpack', 'Modpacks']];
 const TYPE_FOLDER = { mod: 'mods', resourcepack: 'resourcepacks', shader: 'shaderpacks' };
 const ENVS = [['all', 'Everything'], ['client', 'Client-side'], ['server', 'Server-side'], ['both', 'Client & server'], ['library', 'Libraries']];
@@ -81,7 +83,10 @@ Pages.discover = async (main, route) => {
     f.push(h('h4', 'Minecraft version'), verSel);
     if (DISC.type !== 'modpack' && target() && DISC.gameVersion !== target().mcVersion) f.push(h('p.note.faint', { style: { fontSize: '12px', margin: '6px 2px' } }, `Your instance runs ${target().mcVersion}. Installs always pick a file made for ${target().mcVersion}.`));
     f.push(h('h4', 'Sort by'), sortSel);
-    if (DISC.type === 'mod' || DISC.type === 'modpack') f.push(h('p.faint', { style: { fontSize: '12px', marginTop: '18px' } }, 'Only Fabric projects are shown.'));
+    if (DISC.type === 'modpack') {
+      f.push(h('h4', 'Mod loader'), h('div.radio-list', PACK_LOADERS.map(([k, label]) => h('button' + (DISC.packLoader === k ? '.on' : ''), { on: { click: () => { DISC.packLoader = k; DISC.offset = 0; build(); } } }, h('i'), label))));
+    }
+    if (DISC.type === 'mod') f.push(h('p.faint', { style: { fontSize: '12px', marginTop: '18px' } }, `Showing ${U.loaderLabel({ loader: loaderOf(target()) })} mods${target() && target().loader === 'neoforge' && DISC.gameVersion === '1.20.1' ? ' (and Forge mods, which run on NeoForge 1.20.1)' : ''}.`));
     filters.replaceChildren(...f);
     await loadInstalled();
     search();
@@ -94,7 +99,8 @@ Pages.discover = async (main, route) => {
     pager.replaceChildren();
     let res;
     try {
-      res = await U.call('search', DISC.source, { query: DISC.query, type: DISC.type, gameVersion: DISC.gameVersion, env: DISC.env, offset: DISC.offset, sort: DISC.sort, limit: 20 });
+      res = await U.call('search', DISC.source, { query: DISC.query, type: DISC.type, gameVersion: DISC.gameVersion, env: DISC.env, offset: DISC.offset, sort: DISC.sort, limit: 20,
+        loader: DISC.type === 'modpack' ? DISC.packLoader : loaderOf(target()) });
     } catch (e) {
       if (seq !== searchSeq) return;
       results.replaceChildren(h('div.empty', h('h3', 'Could not reach ' + (DISC.source === 'modrinth' ? 'Modrinth' : 'CurseForge')), h('p', e.message), h('button.btn', { on: { click: search } }, U.svg('refresh'), 'Try again')));
@@ -118,7 +124,9 @@ Pages.discover = async (main, route) => {
       h('div.body',
         h('h3', p.title, p.author ? h('small', `by ${p.author}`) : null),
         h('p', p.description),
-        h('div.tags', DISC.type === 'mod' ? U.envBadge(p.env, p.isLibrary) : null, h('span.stats', `${U.num(p.downloads)} downloads`))),
+        h('div.tags', DISC.type === 'mod' ? U.envBadge(p.env, p.isLibrary) : null,
+          DISC.type === 'modpack' ? (p.loaders || []).map(l => h('span.badge', l)) : null,
+          h('span.stats', `${U.num(p.downloads)} downloads`))),
       h('div.act', btn));
   }
 
@@ -131,7 +139,7 @@ Pages.discover = async (main, route) => {
   async function install(p, version, btn) {
     const t = target();
     if (!t) return C.toast('Make an instance first', 'err');
-    if (DISC.type === 'mod' && t.loader !== 'fabric') return C.toast(`${t.name} is a vanilla instance. Switch it to Fabric in its settings to add mods.`, 'err');
+    if (DISC.type === 'mod' && !['fabric', 'forge', 'neoforge'].includes(t.loader)) return C.toast(`${t.name} is a vanilla instance. Pick Fabric, Forge or NeoForge in its settings to add mods.`, 'err');
     if (btn) { btn.disabled = true; btn.replaceChildren(h('span.spinner'), 'Installing'); }
     try {
       const info = { title: p.title, icon: p.icon, slug: p.slug, env: p.env };
@@ -151,9 +159,9 @@ Pages.discover = async (main, route) => {
     if (btn) { btn.disabled = true; btn.replaceChildren(h('span.spinner'), 'Installing'); }
     try {
       if (!versionId) {
-        const vs = await U.call('versions', DISC.source, p.id, { type: 'modpack', gameVersion: DISC.gameVersion });
+        const vs = await U.call('versions', DISC.source, p.id, { type: 'modpack', gameVersion: DISC.gameVersion, loader: DISC.packLoader });
         const pick = vs.find(v => v.type === 'release') || vs[0];
-        if (!pick) throw new Error(`${p.title} has no Fabric version${DISC.gameVersion ? ' for ' + DISC.gameVersion : ''}.`);
+        if (!pick) throw new Error(`${p.title} has no Fabric, Forge or NeoForge version${DISC.gameVersion ? ' for ' + DISC.gameVersion : ''}.`);
         versionId = pick.id;
       }
       const r = await U.call('installModpack', DISC.source, p.id, versionId, { title: p.title, icon: p.icon });
@@ -183,7 +191,7 @@ Pages.discover = async (main, route) => {
     try {
       const t = target();
       const gv = DISC.type === 'modpack' ? DISC.gameVersion : (t ? t.mcVersion : DISC.gameVersion);
-      const [proj, vers] = await Promise.all([U.call('project', DISC.source, p.id), U.call('versions', DISC.source, p.id, { type: DISC.type, gameVersion: gv })]);
+      const [proj, vers] = await Promise.all([U.call('project', DISC.source, p.id), U.call('versions', DISC.source, p.id, { type: DISC.type, gameVersion: gv, loader: DISC.type === 'modpack' ? DISC.packLoader : loaderOf(t) })]);
       const gallery = (proj.gallery || []).slice(0, 8);
       const vlist = vers.slice(0, 12).map(v => h('div.v', h('div', h('b', v.name || v.number), h('small', `${v.type}   ${(v.gameVersions || []).filter(x => /^\d/.test(x)).slice(0, 4).join(', ')}   ${v.date ? new Date(v.date).toLocaleDateString() : ''}`)),
         h('button.btn.small', { on: { click: (e) => DISC.type === 'modpack' ? installPack(p, v.id, e.currentTarget) : install(p, v, e.currentTarget) } }, U.svg('download'), 'Install')));
@@ -195,7 +203,7 @@ Pages.discover = async (main, route) => {
           h('button.btn', { on: { click: () => U.call('openExternal', proj.url) } }, U.svg('external'), DISC.source === 'modrinth' ? 'Open on Modrinth' : 'Open on CurseForge')),
         gallery.length ? h('div.gallery', gallery.map(g => h('img', { src: g, alt: '', loading: 'lazy' }))) : null,
         h('h4', { style: { margin: '6px 0 8px' } }, gv ? `Versions for ${gv}` : 'Versions'),
-        vlist.length ? h('div.versions', vlist) : h('p.muted', `No ${DISC.type === 'mod' || DISC.type === 'modpack' ? 'Fabric ' : ''}files for ${gv || 'this filter'}.`),
+        vlist.length ? h('div.versions', vlist) : h('p.muted', `No ${DISC.type === 'mod' ? U.loaderLabel({ loader: loaderOf(t) }) + ' ' : ''}files for ${gv || 'this filter'}.`),
         h('div.md', { html: U.renderMd(proj.body || proj.bodyHtml || proj.description, !!proj.bodyHtml) })].filter(Boolean));
     } catch (e) { dbody.replaceChildren(h('div.empty', h('h3', 'Could not load details'), h('p', e.message))); }
   }

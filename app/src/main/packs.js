@@ -15,7 +15,7 @@ async function importFile(file, report = () => {}) {
   if (names.includes('manifest.json')) return curseforge.importZip(zip, { report });
   const root = commonRoot(names);
   if (names.includes(root + 'instance.json') && names.includes(root + 'mcl-export.json')) return { instance: importOwn(zip, root), blocked: [] };
-  if (names.includes(root + 'mmc-pack.json')) return { instance: importPrism(zip, root), blocked: [] };
+  if (names.includes(root + 'mmc-pack.json')) return { instance: await importPrism(zip, root), blocked: [] };
   throw new Error('This file is not a modpack McLauncher understands (.mrpack, CurseForge zip, Prism/MultiMC zip or McLauncher export).');
 }
 
@@ -55,17 +55,24 @@ function importOwn(zip, root) {
   return instances.get(inst.id);
 }
 
-function importPrism(zip, root) {
+async function importPrism(zip, root) {
   const pack = JSON.parse(zip.getEntry(root + 'mmc-pack.json').getData().toString('utf8'));
   const comp = (uid) => (pack.components || []).find(c => c.uid === uid);
   const mc = comp('net.minecraft');
   if (!mc) throw new Error('The Prism instance has no Minecraft version.');
-  if (comp('net.minecraftforge') || comp('net.neoforged') || comp('org.quiltmc.quilt-loader')) throw new Error('This Prism instance uses Forge/NeoForge/Quilt. McLauncher supports Fabric and vanilla only.');
+  if (comp('org.quiltmc.quilt-loader')) throw new Error('This Prism instance uses Quilt. McLauncher supports Fabric, Forge, NeoForge and vanilla.');
   const fab = comp('net.fabricmc.fabric-loader');
+  const fg = comp('net.minecraftforge');
+  const neo = comp('net.neoforged');
+  const forge = require('./forge');
+  let loader = 'vanilla', loaderVersion = null;
+  if (fab) { loader = 'fabric'; loaderVersion = fab.version; }
+  else if (neo) { loader = 'neoforge'; loaderVersion = await forge.fullVersion('neoforge', mc.version, neo.version); }
+  else if (fg) { loader = 'forge'; loaderVersion = await forge.fullVersion('forge', mc.version, fg.version); }
   let name = 'Imported instance';
   const cfg = zip.getEntry(root + 'instance.cfg');
   if (cfg) { const m = /^name=(.*)$/m.exec(cfg.getData().toString('utf8')); if (m) name = m[1].trim(); }
-  const inst = instances.create({ name, mcVersion: mc.version, loader: fab ? 'fabric' : 'vanilla', loaderVersion: fab ? fab.version : null });
+  const inst = instances.create({ name, mcVersion: mc.version, loader, loaderVersion });
   const names = zip.getEntries().map(e => e.entryName);
   const gamePrefix = names.some(n => n.startsWith(root + '.minecraft/')) ? root + '.minecraft/' : root + 'minecraft/';
   extractPrefix(zip, gamePrefix, instances.gameDir(inst.id));

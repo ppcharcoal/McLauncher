@@ -9,6 +9,7 @@ const KIND_TYPE = { mods: 'mod', resourcepacks: 'resourcepack', shaderpacks: 'sh
 const KIND_NOUN = { mods: 'mod', resourcepacks: 'resource pack', shaderpacks: 'shader pack' };
 const KIND_ICON = { mods: 'cube', resourcepacks: 'layers', shaderpacks: 'sun' };
 const LIVE = ['running', 'starting', 'preparing'];
+const MODDED = (i) => ['fabric', 'forge', 'neoforge'].includes(i.loader);
 
 Pages.instance = async (main, route) => {
   const { h } = U;
@@ -32,7 +33,7 @@ Pages.instance = async (main, route) => {
         h('h1', inst.name),
         h('div.meta',
           h('span.badge', `Minecraft ${inst.mcVersion}`),
-          h('span.badge', inst.loader === 'fabric' ? `Fabric ${inst.loaderVersion || 'latest'}` : 'Vanilla'),
+          h('span.badge', U.loaderVersionLabel(inst)),
           inst.source && inst.source.version ? h('span.badge', `Pack ${inst.source.version}`) : null,
           h('span', U.duration(inst.playTime)),
           stateText ? h('span', { style: { color: 'var(--accent)', fontWeight: 600 } }, stateText) : null)),
@@ -85,8 +86,8 @@ async function renderContentTab(body, inst, kind) {
     if (!items.length) {
       listEl.replaceChildren(h('div.empty', { style: { border: 0 } },
         h('h3', `No ${KIND_NOUN[kind]}s yet`),
-        h('p', kind === 'mods' && inst.loader !== 'fabric' ? 'This is a vanilla instance. Switch it to Fabric in Settings to use mods.' : `Find ${KIND_NOUN[kind]}s on Modrinth or CurseForge, or drop files here.`),
-        kind === 'mods' && inst.loader !== 'fabric' ? null : h('button.btn.primary', { on: { click: () => App.go(`#discover/${KIND_TYPE[kind]}/${inst.id}`) } }, U.svg('search'), `Browse ${KIND_NOUN[kind]}s`)));
+        h('p', kind === 'mods' && !MODDED(inst) ? 'This is a vanilla instance. Pick Fabric, Forge or NeoForge in Settings to use mods.' : `Find ${KIND_NOUN[kind]}s on Modrinth or CurseForge, or drop files here.`),
+        kind === 'mods' && !MODDED(inst) ? null : h('button.btn.primary', { on: { click: () => App.go(`#discover/${KIND_TYPE[kind]}/${inst.id}`) } }, U.svg('search'), `Browse ${KIND_NOUN[kind]}s`)));
       return;
     }
     listEl.replaceChildren(...shown.map(it => {
@@ -122,7 +123,7 @@ async function renderContentTab(body, inst, kind) {
     kind === 'mods' ? h('button.btn', { on: { click: () => checkUpdates(inst, load) } }, U.svg('refresh'), 'Check for updates') : null,
     h('button.btn', { on: { click: () => U.call('openFolder', inst.id, kind) } }, U.svg('folder'), 'Open folder'),
     h('button.btn', { on: { click: async () => { const n = await U.call('pickContentFiles', inst.id, kind); if (n) { C.toast(`Added ${n} file${n === 1 ? '' : 's'}`); load(); } } } }, U.svg('plus'), 'Add files'),
-    h('button.btn.primary', { disabled: kind === 'mods' && inst.loader !== 'fabric', on: { click: () => App.go(`#discover/${KIND_TYPE[kind]}/${inst.id}`) } }, U.svg('search'), `Browse ${KIND_NOUN[kind]}s`));
+    h('button.btn.primary', { disabled: kind === 'mods' && !MODDED(inst), on: { click: () => App.go(`#discover/${KIND_TYPE[kind]}/${inst.id}`) } }, U.svg('search'), `Browse ${KIND_NOUN[kind]}s`));
   body.append(tools, listEl, h('p.drop-hint', `Drop ${kind === 'mods' ? '.jar' : '.zip'} files on the list to add them.`));
   listEl.append(h('div.loading', h('span.spinner')));
   await load();
@@ -292,27 +293,7 @@ async function renderLogs(body, inst) {
 async function renderInstSettings(body, inst, { refresh }) {
   const { h } = U;
   const st = { name: inst.name, mcVersion: inst.mcVersion, loader: inst.loader, loaderVersion: inst.loaderVersion || '', memory: inst.memory || 4096, jvmArgs: inst.jvmArgs || '', javaPath: inst.javaPath || '', width: inst.width || '', height: inst.height || '' };
-  const mcSel = h('select.input', { on: { change: e => { st.mcVersion = e.target.value; loadLoaders(); } } }, h('option', { value: st.mcVersion }, st.mcVersion));
-  const loaderSel = h('select.input', { on: { change: e => st.loaderVersion = e.target.value } }, h('option', { value: st.loaderVersion }, st.loaderVersion || 'latest'));
-  const loaderSeg = h('div.segmented',
-    h('button', { type: 'button', on: { click: () => setLoader('fabric') } }, 'Fabric'),
-    h('button', { type: 'button', on: { click: () => setLoader('vanilla') } }, 'Vanilla'));
-  const loaderField = h('div.field', h('label', 'Fabric loader'), loaderSel);
-  function setLoader(l) { st.loader = l; loaderSeg.children[0].classList.toggle('on', l === 'fabric'); loaderSeg.children[1].classList.toggle('on', l === 'vanilla'); loaderField.style.display = l === 'fabric' ? '' : 'none'; if (l === 'fabric') loadLoaders(); }
-  async function loadLoaders() {
-    if (st.loader !== 'fabric') return;
-    try {
-      const list = await U.call('fabricLoaders', st.mcVersion);
-      loaderSel.replaceChildren(...list.map(l => h('option', { value: l.version }, l.version + (l.stable ? '' : '  (beta)'))));
-      if (!list.some(l => l.version === st.loaderVersion)) st.loaderVersion = (list.find(l => l.stable) || list[0] || {}).version || '';
-      loaderSel.value = st.loaderVersion;
-    } catch {}
-  }
-  U.call('mcVersions').then(v => {
-    mcSel.replaceChildren(...v.filter(x => x.type === 'release' || x.id === st.mcVersion).map(x => h('option', { value: x.id }, x.id)));
-    mcSel.value = st.mcVersion;
-  }).catch(() => {});
-  setLoader(st.loader);
+  const picker = C.loaderPicker({ loader: st.loader || 'vanilla', mc: st.mcVersion, loaderVersion: st.loaderVersion, allowSnapshots: true });
   const memOut = h('output', (st.memory / 1024).toFixed(1) + ' GB');
   body.append(h('div.settings-wrap',
     h('div.section', h('h2', 'General'), h('p', 'Name and picture shown in your library.'),
@@ -320,8 +301,7 @@ async function renderInstSettings(body, inst, { refresh }) {
       h('div.row', h('button.btn', { on: { click: async () => { const r = await U.call('pickIcon', inst.id); if (r) { refresh(); App.refreshInstances(); } } } }, U.svg('image'), 'Change picture'),
         inst.iconUrl ? h('button.btn.ghost', { on: { click: async () => { await U.call('clearIcon', inst.id); refresh(); App.refreshInstances(); } } }, 'Use generated picture') : null)),
     h('div.section', h('h2', 'Game version'), h('p', 'Changing versions can break mods and worlds. Make a copy first if you are unsure.'),
-      h('div.field', h('label', 'Mod loader'), loaderSeg),
-      h('div.grid2', h('div.field', h('label', 'Minecraft'), mcSel), loaderField)),
+      picker.el),
     h('div.section', h('h2', 'Performance'), h('p', 'Memory given to Minecraft. Most modpacks run well with 4–8 GB.'),
       h('div.field', h('div.range-row', h('input', { type: 'range', min: 1024, max: 32768, step: 512, value: st.memory, on: { input: e => { st.memory = +e.target.value; memOut.textContent = (st.memory / 1024).toFixed(1) + ' GB'; } } }), memOut)),
       h('div.grid2',
@@ -331,7 +311,8 @@ async function renderInstSettings(body, inst, { refresh }) {
       h('div.field', h('label', 'Java executable'), h('input.input', { placeholder: 'Automatic (downloaded for each Minecraft version)', value: st.javaPath, on: { input: e => st.javaPath = e.target.value } }))),
     h('div.row', h('div.spacer'), h('button.btn.primary', { on: { click: async () => {
       try {
-        await U.call('updateInstance', inst.id, { name: st.name.trim() || inst.name, mcVersion: st.mcVersion, loader: st.loader, loaderVersion: st.loader === 'fabric' ? st.loaderVersion || null : null, memory: st.memory, jvmArgs: st.jvmArgs, javaPath: st.javaPath.trim(), width: +st.width || null, height: +st.height || null });
+        picker.validate();
+        await U.call('updateInstance', inst.id, { name: st.name.trim() || inst.name, ...picker.get(), memory: st.memory, jvmArgs: st.jvmArgs, javaPath: st.javaPath.trim(), width: +st.width || null, height: +st.height || null });
         C.toast('Settings saved'); refresh(); App.refreshInstances();
       } catch (e) { C.toast(e.message, 'err'); }
     } } }, 'Save changes'))));

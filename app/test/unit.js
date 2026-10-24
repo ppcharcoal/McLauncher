@@ -127,4 +127,47 @@ t('prism zip import + zip-slip rejected', () => {
   const bad = { getEntries: () => [{ entryName: 'overrides/../../evil.txt', isDirectory: false, getData: () => Buffer.from('x') }] };
   assert.throws(() => modrinth.extractOverrides(bad, instances.gameDir('test-pack'), ['overrides/']));
 });
+t('neoforge version mapping', () => {
+  const forge = require('../src/main/forge');
+  assert.strictEqual(forge.neoToMc('21.1.209'), '1.21.1');
+  assert.strictEqual(forge.neoToMc('21.0.167'), '1.21');
+  assert.strictEqual(forge.neoToMc('20.4.237'), '1.20.4');
+  assert.strictEqual(forge.neoToMc('21.4.0-beta'), '1.21.4');
+  assert.strictEqual(forge.neoToMc('26.1.0.3-beta'), '26.1');
+  assert.strictEqual(forge.neoToMc('26.1.2.7'), '26.1.2');
+  assert.strictEqual(forge.shortVersion('forge', '1.20.1', '1.20.1-47.3.0'), '47.3.0');
+  assert.strictEqual(forge.shortVersion('forge', '1.7.10', '1.7.10-10.13.4.1614-1.7.10'), '10.13.4.1614');
+  assert.strictEqual(forge.shortVersion('neoforge', '1.20.1', '1.20.1-47.1.106'), '47.1.106');
+  assert.ok(forge.installerUrl('neoforge', '1.20.1-47.1.106').includes('/net/neoforged/forge/'));
+  assert.ok(forge.installerUrl('neoforge', '21.1.209').endsWith('neoforge-21.1.209-installer.jar'));
+});
+t('forge mods.toml + mcmod.info metadata', () => {
+  const inst = instances.create({ name: 'Forge Meta', mcVersion: '1.20.1', loader: 'forge', loaderVersion: '1.20.1-47.3.0' });
+  const gd = instances.gameDir(inst.id);
+  const a = new AdmZip();
+  a.addFile('META-INF/mods.toml', Buffer.from('modLoader="javafml"\nloaderVersion="[47,)"\n[[mods]]\nmodId="jei"\nversion="${file.jarVersion}"\ndisplayName="Just Enough Items"\ndescription=\'\'\'\nShows items\n\'\'\'\n[[dependencies.jei]]\nmodId="forge"\n'));
+  a.addFile('META-INF/MANIFEST.MF', Buffer.from('Manifest-Version: 1.0\nImplementation-Version: 15.2.0.27\n'));
+  a.writeZip(path.join(gd, 'mods', 'jei.jar'));
+  const b = new AdmZip();
+  b.addFile('mcmod.info', Buffer.from(JSON.stringify([{ modid: 'oldmod', name: 'Old Mod', version: '1.0' }])));
+  b.writeZip(path.join(gd, 'mods', 'old.jar'));
+  const mods = instances.listContent(inst.id, 'mods');
+  const jei = mods.find(m => m.file === 'jei.jar');
+  assert.strictEqual(jei.title, 'Just Enough Items');
+  assert.strictEqual(jei.modVersion, '15.2.0.27');
+  assert.strictEqual(mods.find(m => m.file === 'old.jar').title, 'Old Mod');
+});
+t('prism neoforge import', () => {
+  const z = new AdmZip();
+  z.addFile('Neo/instance.cfg', Buffer.from('name=Neo Pack\n'));
+  z.addFile('Neo/mmc-pack.json', Buffer.from(JSON.stringify({ components: [{ uid: 'net.minecraft', version: '1.21.1' }, { uid: 'net.neoforged', version: '21.1.209' }] })));
+  z.addFile('Neo/minecraft/options.txt', Buffer.from('x'));
+  const f = path.join(process.env.MCL_DATA_DIR, 'neo.zip');
+  z.writeZip(f);
+  packs.importFile(f).then(r => {
+    assert.strictEqual(r.instance.loader, 'neoforge');
+    assert.strictEqual(r.instance.loaderVersion, '21.1.209');
+    console.log('ok - prism neoforge import (async)');
+  });
+});
 process.on('exit', () => console.log(`${n} test groups passed`));

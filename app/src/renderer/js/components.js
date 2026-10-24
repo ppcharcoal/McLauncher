@@ -70,10 +70,81 @@ C.blocked = (items, instId) => {
   });
 };
 
+// ---------- loader + version picker (new instance & instance settings) ----------
+U.LOADERS = [['fabric', 'Fabric'], ['forge', 'Forge'], ['neoforge', 'NeoForge'], ['vanilla', 'Vanilla']];
+const loaderGameCache = {};
+C.loaderPicker = ({ loader = 'fabric', mc = '', loaderVersion = '', allowSnapshots = true } = {}) => {
+  const state = { loader, mc, loaderVersion, snapshots: false };
+  let mcList = [];
+  const mcSel = h('select.input', { 'aria-label': 'Minecraft version', on: { change: (e) => { state.mc = e.target.value; loadLoaders(); } } }, h('option', 'Loading versions…'));
+  const snapToggle = allowSnapshots ? h('label.check', h('input', { type: 'checkbox', on: { change: (e) => { state.snapshots = e.target.checked; fillMc(); } } }), 'Show snapshots') : null;
+  const seg = h('div.segmented', U.LOADERS.map(([k, label]) => h('button', { type: 'button', on: { click: () => setLoader(k) } }, label)));
+  const loaderSel = h('select.input', { 'aria-label': 'Loader version', on: { change: (e) => { state.loaderVersion = e.target.value; } } });
+  const loaderLabel = h('label');
+  const hint = h('span.hint');
+  const loaderField = h('div.field', loaderLabel, loaderSel, hint);
+  const mcHint = h('span.hint');
+
+  async function supported(l) {
+    if (l === 'vanilla') return null;
+    if (!loaderGameCache[l]) loaderGameCache[l] = U.call('loaderGameVersions', l).then(v => new Set(v)).catch(() => null);
+    return loaderGameCache[l];
+  }
+  async function setLoader(l) {
+    state.loader = l;
+    [...seg.children].forEach((b, i) => b.classList.toggle('on', U.LOADERS[i][0] === l));
+    const name = U.LOADERS.find(x => x[0] === l)[1];
+    loaderLabel.textContent = `${name} version`;
+    hint.textContent = l === 'forge' ? 'The recommended Forge build is picked for you.' : `The newest stable ${name} build is picked for you.`;
+    loaderField.style.display = l === 'vanilla' ? 'none' : '';
+    await fillMc();
+  }
+  async function fillMc() {
+    if (!mcList.length) return;
+    const keep = state.mc;
+    const sup = await supported(state.loader);
+    const list = mcList.filter(v => (state.snapshots || v.type === 'release' || v.id === keep) && (!sup || sup.has(v.id)));
+    mcSel.replaceChildren(...list.map(v => h('option', { value: v.id }, v.id + (v.type !== 'release' ? '  (snapshot)' : ''))));
+    state.mc = list.some(v => v.id === keep) ? keep : (list[0] ? list[0].id : '');
+    mcSel.value = state.mc;
+    mcHint.textContent = sup ? `${list.length} versions with ${U.LOADERS.find(x => x[0] === state.loader)[1]}` : '';
+    await loadLoaders(true);
+  }
+  let req = 0;
+  async function loadLoaders(keepSelection) {
+    if (state.loader === 'vanilla' || !state.mc) return;
+    const mine = ++req;
+    const wanted = keepSelection ? state.loaderVersion : '';
+    loaderSel.replaceChildren(h('option', 'Loading…'));
+    try {
+      const list = await U.call('loaderVersions', state.loader, state.mc);
+      if (mine !== req) return;
+      if (!list.length) { loaderSel.replaceChildren(h('option', { value: '' }, 'Not available for this version')); state.loaderVersion = ''; return; }
+      loaderSel.replaceChildren(...list.map(l => h('option', { value: l.version }, l.label + (l.recommended ? '  (recommended)' : !l.stable ? '  (beta)' : ''))));
+      const pick = list.find(l => l.version === wanted) || list.find(l => l.recommended) || list.find(l => l.stable) || list[0];
+      state.loaderVersion = pick.version;
+      loaderSel.value = state.loaderVersion;
+    } catch { loaderSel.replaceChildren(h('option', { value: '' }, 'Could not load versions')); state.loaderVersion = ''; }
+  }
+  U.call('mcVersions').then(v => { mcList = v; setLoader(state.loader); }).catch(e => { mcSel.replaceChildren(h('option', 'Could not load versions. Check your connection.')); C.toast(e.message, 'err'); });
+
+  const el = h('div',
+    h('div.field', h('label', 'Mod loader'), seg),
+    h('div.grid2', h('div.field', h('label', 'Minecraft version'), mcSel, snapToggle || mcHint), loaderField));
+  return {
+    el,
+    get: () => ({ loader: state.loader, mcVersion: state.mc, loaderVersion: state.loader === 'vanilla' ? null : state.loaderVersion }),
+    validate() {
+      if (!state.mc) throw new Error('Pick a Minecraft version.');
+      const name = U.LOADERS.find(x => x[0] === state.loader)[1];
+      if (state.loader !== 'vanilla' && !state.loaderVersion) throw new Error(`${name} is not available for Minecraft ${state.mc}. Pick another version or loader.`);
+    },
+  };
+};
+
 // ---------- new instance ----------
 C.newInstance = async (preset = {}) => {
-  const state = { name: preset.name || '', mc: '', loader: 'fabric', loaderVersion: '', snapshots: false, imagePath: null, memory: (await U.call('getSettings')).memory };
-  let mcList = [], fabricGames = new Set();
+  const state = { name: preset.name || '', imagePath: null, memory: (await U.call('getSettings')).memory };
   const picBox = h('div.pv', { title: 'Choose a picture', on: { click: pickPic } });
   const setPreview = (url) => { picBox.replaceChildren(url ? h('img', { src: url, alt: '' }) : U.blockArt(state.name || 'new')); };
   setPreview(null);
@@ -84,72 +155,25 @@ C.newInstance = async (preset = {}) => {
     setPreview(await U.call('imageDataUrl', p));
   }
   const nameIn = h('input.input', { placeholder: 'My survival world', value: state.name, on: { input: (e) => { state.name = e.target.value; if (!state.imagePath) setPreview(null); } } });
-  const mcSel = h('select.input', { on: { change: (e) => { state.mc = e.target.value; loadLoaders(); } } });
-  const snapToggle = h('label.check', h('input', { type: 'checkbox', on: { change: (e) => { state.snapshots = e.target.checked; fillMc(); } } }), 'Show snapshots');
-  const loaderSeg = h('div.segmented',
-    h('button', { type: 'button', on: { click: () => setLoader('fabric') } }, 'Fabric'),
-    h('button', { type: 'button', on: { click: () => setLoader('vanilla') } }, 'Vanilla'));
-  const loaderSel = h('select.input', { on: { change: (e) => { state.loaderVersion = e.target.value; } } });
-  const loaderField = h('div.field', h('label', 'Fabric loader version'), loaderSel, h('span.hint', 'The newest stable loader is picked for you.'));
+  const picker = C.loaderPicker({ loader: preset.loader || 'fabric', mc: preset.mcVersion || '' });
   const memOut = h('output', (state.memory / 1024).toFixed(1) + ' GB');
   const memIn = h('input', { type: 'range', min: 1024, max: 16384, step: 512, value: state.memory, on: { input: (e) => { state.memory = +e.target.value; memOut.textContent = (state.memory / 1024).toFixed(1) + ' GB'; } } });
-
-  function setLoader(l) {
-    state.loader = l;
-    loaderSeg.children[0].classList.toggle('on', l === 'fabric');
-    loaderSeg.children[1].classList.toggle('on', l === 'vanilla');
-    loaderField.style.display = l === 'fabric' ? '' : 'none';
-    fillMc();
-  }
-  function fillMc() {
-    const keep = state.mc;
-    const list = mcList.filter(v => (state.snapshots ? true : v.type === 'release') && (state.loader !== 'fabric' || !fabricGames.size || fabricGames.has(v.id)));
-    mcSel.replaceChildren(...list.map(v => h('option', { value: v.id }, v.id + (v.type !== 'release' ? '  (snapshot)' : ''))));
-    state.mc = list.some(v => v.id === keep) ? keep : (list[0] ? list[0].id : '');
-    mcSel.value = state.mc;
-    loadLoaders();
-  }
-  let loaderReq = 0;
-  async function loadLoaders() {
-    if (state.loader !== 'fabric' || !state.mc) return;
-    const req = ++loaderReq;
-    loaderSel.replaceChildren(h('option', 'Loading…'));
-    try {
-      const list = await U.call('fabricLoaders', state.mc);
-      if (req !== loaderReq) return;
-      loaderSel.replaceChildren(...list.map(l => h('option', { value: l.version }, l.version + (l.stable ? '' : '  (beta)'))));
-      const pick = list.find(l => l.stable) || list[0];
-      state.loaderVersion = pick ? pick.version : '';
-      loaderSel.value = state.loaderVersion;
-      if (!list.length) loaderSel.replaceChildren(h('option', { value: '' }, 'Fabric does not support this version'));
-    } catch (e) { loaderSel.replaceChildren(h('option', { value: '' }, 'Could not load Fabric versions')); }
-  }
 
   const body = h('div',
     h('div.pic-pick', picBox, h('div.grow',
       h('div.field', { style: { marginBottom: '8px' } }, h('label', 'Name'), nameIn),
       h('div.row', h('button.btn.small', { type: 'button', on: { click: pickPic } }, U.svg('image'), 'Choose picture'), h('span.faint', { style: { fontSize: '12px' } }, 'PNG, JPG, WebP or GIF')))),
-    h('div.field', h('label', 'Mod loader'), loaderSeg),
-    h('div.grid2',
-      h('div.field', h('label', 'Minecraft version'), mcSel, snapToggle),
-      loaderField),
+    picker.el,
     h('div.field', h('label', 'Memory'), h('div.range-row', memIn, memOut)));
-  setLoader('fabric');
-  mcSel.replaceChildren(h('option', 'Loading versions…'));
-  Promise.all([U.call('mcVersions'), U.call('fabricGameVersions').catch(() => [])]).then(([v, f]) => {
-    mcList = v; fabricGames = new Set(f);
-    if (preset.mcVersion) state.mc = preset.mcVersion;
-    fillMc();
-  }).catch(e => { mcSel.replaceChildren(h('option', 'Could not load versions — check your connection')); C.toast(e.message, 'err'); });
 
   return new Promise(res => C.modal({
     title: 'New instance', body, onClose: res,
     actions: [
       { label: 'Cancel' },
       { label: 'Create instance', kind: 'primary', onClick: async () => {
-        if (!state.mc) throw new Error('Pick a Minecraft version.');
-        if (state.loader === 'fabric' && !state.loaderVersion) throw new Error('Fabric does not support Minecraft ' + state.mc + '. Pick another version or choose Vanilla.');
-        const inst = await U.call('createInstance', { name: state.name.trim() || `Minecraft ${state.mc}`, mcVersion: state.mc, loader: state.loader, loaderVersion: state.loader === 'fabric' ? state.loaderVersion : null, memory: state.memory });
+        picker.validate();
+        const v = picker.get();
+        const inst = await U.call('createInstance', { name: state.name.trim() || `Minecraft ${v.mcVersion}`, ...v, memory: state.memory });
         if (state.imagePath) await U.call('setIconFromPath', inst.id, state.imagePath);
         return inst;
       } },

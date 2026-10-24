@@ -21,6 +21,7 @@ const netUtil = require('./net');
 const auth = require('./auth');
 const mojang = require('./mojang');
 const fabric = require('./fabric');
+const forge = require('./forge');
 const instances = require('./instances');
 const modrinth = require('./modrinth');
 const curseforge = require('./curseforge');
@@ -149,10 +150,10 @@ async function launchInstance(instId, opts = {}) {
       if (s.lines.length > MAX_LINES) s.lines.splice(0, s.lines.length - MAX_LINES);
       s.pending.push(line);
       stream.write(line + '\n');
-      if (s.state === 'starting' && /Backend library:|Sound engine started|OpenAL initialized|Created: \d+x\d+x\d+ minecraft:textures|Reloading ResourceManager/.test(line)) {
+      if (s.state === 'starting' && /Backend library:|Sound engine started|OpenAL initialized|Created: \d+x\d+x\d+ minecraft:textures|Created: \d+x\d+ textures-atlas|Reloading ResourceManager/.test(line)) {
         clearTimeout(readyTimer); markRunning();
       }
-      if (process.env.MCL_TEST_EXIT_AFTER_READY && /Sound engine started|Created: \d+x\d+x\d+ minecraft:textures/.test(line)) {
+      if (process.env.MCL_TEST_EXIT_AFTER_READY && /Sound engine started|Created: \d+x\d+x\d+ minecraft:textures|Created: \d+x\d+ textures-atlas/.test(line)) {
         setTimeout(() => { try { s.proc.kill('SIGTERM'); } catch {} }, 3000);
       }
     },
@@ -212,6 +213,10 @@ const api = {
   mcVersions: async () => (await mojang.getManifest()).versions.map(v => ({ id: v.id, type: v.type, released: v.releaseTime })),
   fabricGameVersions: async () => (await fabric.gameVersions()).map(v => v.version),
   fabricLoaders: (mc) => fabric.loaderVersions(mc),
+  loaderGameVersions: async (loader) => loader === 'fabric' ? (await fabric.gameVersions()).map(v => v.version) : forge.gameVersions(loader),
+  loaderVersions: async (loader, mc) => loader === 'fabric'
+    ? (await fabric.loaderVersions(mc)).map(l => ({ ...l, label: l.version }))
+    : forge.loaderVersions(loader, mc),
 
   // instances
   instances: () => instances.list().map(i => ({ ...i, session: sessionInfo(sessions.get(i.id)) })),
