@@ -187,16 +187,16 @@ Pages.discover = async (main, route) => {
       const gallery = (proj.gallery || []).slice(0, 8);
       const vlist = vers.slice(0, 12).map(v => h('div.v', h('div', h('b', v.name || v.number), h('small', `${v.type}   ${(v.gameVersions || []).filter(x => /^\d/.test(x)).slice(0, 4).join(', ')}   ${v.date ? new Date(v.date).toLocaleDateString() : ''}`)),
         h('button.btn.small', { on: { click: (e) => DISC.type === 'modpack' ? installPack(p, v.id, e.currentTarget) : install(p, v, e.currentTarget) } }, U.svg('download'), 'Install')));
-      dbody.replaceChildren(
+      dbody.replaceChildren(...[
         h('div.row', { style: { marginBottom: '16px', gap: '8px' } },
-          (DISC.type !== 'modpack' && installed.has(String(p.id)))
+          (DISC.type !== 'modpack' && (installed.has(String(p.id)) || installed.has('t:' + p.title.toLowerCase())))
             ? h('button.btn', { disabled: true }, U.svg('check'), 'Installed')
             : h('button.btn.primary', { on: { click: (e) => { const b = e.currentTarget; DISC.type === 'modpack' ? installPack(p, null, b) : install(p, null, b); } } }, U.svg('download'), DISC.type === 'modpack' ? 'Install newest' : 'Install'),
           h('button.btn', { on: { click: () => U.call('openExternal', proj.url) } }, U.svg('external'), DISC.source === 'modrinth' ? 'Open on Modrinth' : 'Open on CurseForge')),
         gallery.length ? h('div.gallery', gallery.map(g => h('img', { src: g, alt: '', loading: 'lazy' }))) : null,
         h('h4', { style: { margin: '6px 0 8px' } }, gv ? `Versions for ${gv}` : 'Versions'),
         vlist.length ? h('div.versions', vlist) : h('p.muted', `No ${DISC.type === 'mod' || DISC.type === 'modpack' ? 'Fabric ' : ''}files for ${gv || 'this filter'}.`),
-        h('div.md', { html: U.renderMd(proj.body || proj.bodyHtml || proj.description, !!proj.bodyHtml) }));
+        h('div.md', { html: U.renderMd(proj.body || proj.bodyHtml || proj.description, !!proj.bodyHtml) })].filter(Boolean));
     } catch (e) { dbody.replaceChildren(h('div.empty', h('h3', 'Could not load details'), h('p', e.message))); }
   }
 
