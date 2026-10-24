@@ -1,0 +1,5 @@
+node_modules/
+app/dist/
+ci-data/
+ci-out/
+*.log
