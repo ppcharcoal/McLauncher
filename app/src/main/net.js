@@ -65,10 +65,17 @@ async function download(url, dest, { sha1, size, verify = false } = {}) {
   }
   ensure(path.dirname(dest));
   const tmp = `${dest}.${process.pid}-${Math.random().toString(36).slice(2, 8)}.part`;
-  const res = await rawFetch(url);
-  if (!res.ok || !res.body) throw new Error(`Download failed (HTTP ${res.status}): ${url}`);
-  try { await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(tmp)); }
-  catch (e) { fs.rmSync(tmp, { force: true }); throw e; }
+  // Retry the whole transfer when a connection drops mid-download.
+  for (let attempt = 1; ; attempt++) {
+    const res = await rawFetch(url);
+    if (!res.ok || !res.body) throw new Error(`Download failed (HTTP ${res.status}): ${url}`);
+    try { await pipeline(Readable.fromWeb(res.body), fs.createWriteStream(tmp)); break; }
+    catch (e) {
+      fs.rmSync(tmp, { force: true });
+      if (attempt >= 4) throw new Error(`Download interrupted: ${path.basename(dest)} (${e.message})`);
+      await sleep(800 * attempt);
+    }
+  }
   if (sha1) {
     const got = await sha1File(tmp);
     if (got !== sha1) { fs.rmSync(tmp, { force: true }); throw new Error(`Checksum mismatch for ${path.basename(dest)}`); }

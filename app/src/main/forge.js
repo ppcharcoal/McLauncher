@@ -60,7 +60,7 @@ async function neoMeta() {
   try { legacy = await fetchJson(`https://maven.neoforged.net/api/maven/versions/releases/net/neoforged/forge`); } catch {}
   const byMc = {};
   for (const v of main.versions || []) (byMc[neoToMc(v)] = byMc[neoToMc(v)] || []).push(v);
-  for (const v of legacy.versions || []) { const mc = v.split('-')[0]; (byMc[mc] = byMc[mc] || []).push(v); }
+  for (const v of legacy.versions || []) { if (!/^1\.20\.1-/.test(v)) continue; (byMc['1.20.1'] = byMc['1.20.1'] || []).push(v); }
   neoCache = { t: Date.now(), byMc };
   return neoCache;
 }

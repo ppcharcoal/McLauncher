@@ -241,7 +241,11 @@ async function renderLogs(body, inst) {
     banner.replaceChildren();
     if (!s || !liveMode) return;
     if (s.state === 'exited' && s.code !== 0) {
-      banner.append(h('div.banner.crash', h('div.grow', h('b', `Minecraft closed with an error (code ${s.code})`), h('div.muted', { style: { fontSize: '13px' } }, s.crashReport ? 'A crash report was written. The full log is below.' : 'Look for red lines in the log below.')),
+      const all = cur.lines.join('\n');
+      let tip = s.crashReport ? 'A crash report was written. The full log is below.' : 'Look for red lines in the log below.';
+      if (/LinuxDisplay\.getAvailableDisplayModes|xrandr/i.test(all)) tip = 'Older Minecraft versions need the xrandr tool. Install it (on Arch: sudo pacman -S xorg-xrandr) and press Play again.';
+      else if (/Incompatible mods found|Mod resolution failed|missing mandatory dependencies|Missing or unsupported mandatory dependencies/i.test(all)) tip = 'Some mods are incompatible or missing a dependency. The log below names them.';
+      banner.append(h('div.banner.crash', h('div.grow', h('b', `Minecraft closed with an error (code ${s.code})`), h('div.muted', { style: { fontSize: '13px' } }, tip)),
         s.crashReport ? h('button.btn', { on: { click: async () => C.modal({ title: 'Crash report', wide: true, body: h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', margin: 0 } }, await U.call('readText', inst.id, s.crashReport)), actions: [{ label: 'Close' }] }) } }, 'View crash report') : null,
         h('button.btn.primary', { on: { click: () => Pages.play(inst) } }, U.svg('play'), 'Play again')));
     } else if (s.state === 'exited') {

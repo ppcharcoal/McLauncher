@@ -59,7 +59,8 @@
         "libxss",
         "libxtst",
         "xdg-utils",
-        "libnotify"
+        "libnotify",
+        "xorg-xrandr"
       ]
     },
     "win": {

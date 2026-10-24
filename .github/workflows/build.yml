@@ -29,7 +29,7 @@ jobs:
       - name: System packages for headless Electron + Minecraft
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers libgbm1 libnss3 libasound2t64 libxss1 libxtst6 libgtk-3-0t64 xauth
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers libgbm1 libnss3 libasound2t64 libxss1 libxtst6 libgtk-3-0t64 xauth x11-xserver-utils
       - run: npm ci
       - name: Unit tests
         run: npm test
