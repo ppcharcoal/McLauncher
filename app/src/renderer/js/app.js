@@ -73,10 +73,9 @@ document.addEventListener('drop', async e => {
   const f = e.dataTransfer.files[0];
   if (!f || e.__handled) return;
   const p = window.mcl.pathForFile(f);
-  if (!/\.(mrpack|zip)$/i.test(p)) return;
+  if (!/\.(mrpack|zip)$/i.test(p) && !(f.type === '' && !/\.[a-z0-9]{1,5}$/i.test(p))) return; // archives, or a dropped folder
   try {
-    const r = await U.call('importPack', p);
-    if (r && r.instance) { await App.refreshInstances(); App.go(`#instance/${r.instance.id}`); if (r.blocked && r.blocked.length) C.blocked(r.blocked, r.instance.id); }
+    await C.finishImport(await U.call('importPack', p));
   } catch (err) { C.toast(err.message, 'err'); }
 });
 

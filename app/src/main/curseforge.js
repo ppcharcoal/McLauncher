@@ -158,23 +158,32 @@ async function importZip(zip, { name, iconUrl, source, report = () => {} } = {})
         fileMap[f.data.id] = f.data; modMap[m.data.id] = m.data;
       }, (d, t) => report('Resolving modpack files', d / t));
     }
-    const blocked = [];
     const content = instances.readContent(inst.id);
     const jobs = [];
+    const packList = [];
     for (const w of wanted) {
       const f = fileMap[w.fileID], m = modMap[w.projectID];
-      if (!f) continue;
+      if (!f) {
+        // The file could not even be looked up; remember it so the player gets a link.
+        packList.push({ path: `mods/(CurseForge file ${w.fileID})`, title: m ? m.name : `CurseForge project ${w.projectID}`, page: m ? pageUrl(m, w.fileID) : `https://www.curseforge.com/projects/${w.projectID}` });
+        continue;
+      }
       const folder = (m && CLASS_FOLDER[m.classId]) || 'mods';
-      if (!f.downloadUrl) { blocked.push({ title: m ? m.name : f.displayName, fileName: f.fileName, url: m ? pageUrl(m, f.id) : 'https://www.curseforge.com', folder }); continue; }
-      jobs.push({ f, m, folder });
-      content.files[`${folder}/${f.fileName}`] = { source: 'curseforge', projectId: String(w.projectID), versionId: String(f.id), title: m ? m.name : f.displayName, iconUrl: m && m.logo ? m.logo.thumbnailUrl : null, sha1: sha1Of(f) };
+      const rel = `${folder}/${f.fileName}`;
+      packList.push({ path: rel, sha1: sha1Of(f), size: f.fileLength, title: m ? m.name : f.displayName, page: m ? pageUrl(m, f.id) : 'https://www.curseforge.com', urls: f.downloadUrl ? [f.downloadUrl] : [] });
+      content.files[rel] = { source: 'curseforge', projectId: String(w.projectID), versionId: String(f.id), title: m ? m.name : f.displayName, iconUrl: m && m.logo ? m.logo.thumbnailUrl : null, sha1: sha1Of(f) };
+      if (f.downloadUrl) jobs.push({ f, folder });
     }
-    await pool(jobs, 8, j => download(j.f.downloadUrl, safeJoin(path.join(gd, j.folder), j.f.fileName), { sha1: sha1Of(j.f), size: j.f.fileLength }),
+    const integrity = require('./integrity');
+    integrity.savePackFiles(inst.id, packList);
+    await pool(jobs, 8, j => download(j.f.downloadUrl, safeJoin(path.join(gd, j.folder), j.f.fileName), { sha1: sha1Of(j.f), size: j.f.fileLength }).catch(() => {}),
       (d, t) => report('Downloading modpack files', d / t));
     instances.writeContent(inst.id, content);
     const ov = (manifest.overrides || 'overrides').replace(/\/?$/, '/');
     require('./modrinth').extractOverrides(zip, gd, [ov]);
     if (iconUrl) { try { await instances.setIcon(inst.id, { url: iconUrl }); } catch {} }
+    // Files CurseForge won't hand out are often on Modrinth with the same SHA-1.
+    const { missing: blocked } = await integrity.repair(inst.id, report);
     return { instance: instances.get(inst.id), blocked };
   } catch (e) {
     instances.remove(inst.id);

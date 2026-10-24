@@ -26,11 +26,12 @@ const instances = require('./instances');
 const modrinth = require('./modrinth');
 const curseforge = require('./curseforge');
 const packs = require('./packs');
+const integrity = require('./integrity');
 const launch = require('./launch');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'mcl', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
-const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8' };
+const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', font: 'onest', fontCustom: '', scale: 1, nativeWayland: false };
 function getSettings() {
   const s = { ...DEFAULT_SETTINGS, ...readJson(P.settings, {}) };
   if (!/^#[0-9a-f]{6}$/i.test(s.accent)) s.accent = DEFAULT_SETTINGS.accent;
@@ -55,7 +56,7 @@ function createWindow(route) {
     icon: path.join(__dirname, '../../build/icon.png'),
     webPreferences: { preload: path.join(__dirname, '../preload.js'), sandbox: true, contextIsolation: true, spellcheck: false },
   });
-  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent } });
+  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent, font: settings.font, fontCustom: settings.fontCustom || '', scale: String(settings.scale || 1) } });
   win.once('ready-to-show', () => { win.show(); focusOnHyprland(); });
   win.on('close', () => { try { const [width, height] = win.getSize(); writeJson(path.join(P.root, 'window.json'), { width, height }); } catch {} });
   win.on('closed', () => { win = null; });
@@ -202,6 +203,21 @@ const api = {
     return getSettings();
   },
   openDataDir: () => shell.openPath(P.root),
+  fontData: (file) => {
+    const name = path.basename(String(file));
+    if (!/^[a-z-]+\.woff2$/.test(name)) throw new Error('bad font');
+    return fs.readFileSync(path.join(__dirname, '../renderer/fonts', name));
+  },
+  rendererLog: (msg) => { try { fs.appendFileSync(path.join(P.logs, 'launcher-ui.log'), `${new Date().toISOString()} ${String(msg).slice(0, 2000)}\n`); } catch {} },
+  systemFonts: () => new Promise((resolve) => {
+    if (process.platform !== 'linux') return resolve([]);
+    execFile('fc-list', [':', 'family'], { maxBuffer: 8 << 20 }, (err, out) => {
+      if (err) return resolve([]);
+      const set = new Set();
+      for (const line of out.split('\n')) { const f = line.split(',')[0].trim(); if (f) set.add(f); }
+      resolve([...set].sort((a, b) => a.localeCompare(b)));
+    });
+  }),
 
   // accounts
   accounts: () => auth.publicAccounts(),
@@ -264,6 +280,16 @@ const api = {
     if (st.size > 4 * 1024 * 1024) throw new Error('This file is too large to preview.');
     return fs.readFileSync(p, 'utf8');
   },
+  writeText: (id, rel, content) => {
+    if (typeof content !== 'string') throw new Error('Nothing to save');
+    if (Buffer.byteLength(content) > 8 * 1024 * 1024) throw new Error('This file is too large to save from here.');
+    const p = instances.resolvePath(id, rel);
+    if (!fs.existsSync(p) || !fs.statSync(p).isFile()) throw new Error('The file no longer exists.');
+    const tmp = p + '.mcl-save';
+    fs.writeFileSync(tmp, content, 'utf8');
+    fs.renameSync(tmp, p);
+    return true;
+  },
   identify: (id) => runTask('Identifying files', () => modrinth.identifyInstance(id)),
   checkUpdates: (id) => runTask('Checking for updates', () => modrinth.checkUpdates(id)),
   applyUpdates: (id, list) => runTask('Updating', async (report) => {
@@ -296,18 +322,37 @@ const api = {
     try {
       return await runTask(`Installing ${info.title}`, async (report) => {
         if (src === 'curseforge') return curseforge.installModpack(projectId, versionId, { ...info, report });
-        return { instance: await modrinth.installModpack(versionId, { ...info, projectId, report }), blocked: [] };
+        const inst = await modrinth.installModpack(versionId, { ...info, projectId, report });
+        return { instance: inst, blocked: inst.missing || [] };
       });
     } catch (e) { if (e.blocked) return { blocked: e.blocked }; throw e; }
   },
-  importPack: async (file) => {
+  importPack: async (file, kind = 'file') => {
     if (!file) {
-      const r = await dialog.showOpenDialog(win, { title: 'Import a modpack', filters: [{ name: 'Modpacks', extensions: ['mrpack', 'zip'] }], properties: ['openFile'] });
+      const r = kind === 'folder'
+        ? await dialog.showOpenDialog(win, { title: 'Import a Prism/MultiMC instance or game folder', properties: ['openDirectory'] })
+        : await dialog.showOpenDialog(win, { title: 'Import a modpack', filters: [{ name: 'Modpacks (.mrpack, .zip)', extensions: ['mrpack', 'zip'] }, { name: 'All files', extensions: ['*'] }], properties: ['openFile'] });
       if (r.canceled || !r.filePaths[0]) return null;
       file = r.filePaths[0];
     }
-    return runTask(`Importing ${path.basename(file)}`, (report) => packs.importFile(file, report));
+    const isDir = fs.existsSync(file) && fs.statSync(file).isDirectory();
+    return runTask(`Importing ${path.basename(file)}`, (report) => isDir ? packs.importFolder(file, report) : packs.importFile(file, report));
   },
+  importRawInto: (instId, source) => runTask('Copying game files', () => packs.importRawInto(instId, source)),
+  // modpack file checks
+  packVerify: (id) => integrity.verify(id),
+  packRepair: (id) => runTask('Checking modpack files', (report) => integrity.repair(id, report)),
+  packAddFiles: async (id, files) => {
+    if (!files) {
+      const r = await dialog.showOpenDialog(win, { title: 'Add downloaded files', properties: ['openFile', 'multiSelections'] });
+      if (r.canceled) return integrity.verify(id);
+      files = r.filePaths;
+    }
+    return integrity.addManual(id, files);
+  },
+  packFromDownloads: (id) => integrity.fromFolder(id, app.getPath('downloads')),
+  packForget: (id, paths) => integrity.forget(id, paths),
+  waylandInfo: () => ({ linux: process.platform === 'linux', wayland: !!process.env.WAYLAND_DISPLAY, glfw: launch.systemGlfw() }),
   exportCandidates: (id) => packs.exportCandidates(id),
   exportPack: async (id, { format, include, name, version, summary }) => {
     const inst = instances.get(id);
@@ -367,6 +412,40 @@ async function runScreenshotTour(dir) {
     await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); location.hash = '#instance/${first.id}/mods'; setTimeout(() => C.exportDialog(App.instances.find(i => i.id === ${JSON.stringify(first.id)})), 2000)`);
     await wait(4500);
     fs.writeFileSync(path.join(dir, 'export.png'), (await win.webContents.capturePage()).toPNG());
+  }
+  if (first) {
+    // config editor
+    await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); location.hash = '#instance/${first.id}/files'`);
+    await wait(2000);
+    const openConfig = async () => {
+      const q = [...document.querySelectorAll('.quick button')].find(b => b.textContent.includes('config'));
+      if (q) q.click();
+      await new Promise(r => setTimeout(r, 900));
+      const row = [...document.querySelectorAll('.file-row')].find(r => /\.(json|toml|properties|txt|json5)$/.test((r.querySelector('.n') || {}).textContent || ''));
+      if (row) row.click();
+      await new Promise(r => setTimeout(r, 700));
+      const ta = document.querySelector('textarea.editor');
+      if (ta) { ta.value += ' '; ta.dispatchEvent(new Event('input')); }
+    };
+    await win.webContents.executeJavaScript(`(${openConfig.toString()})()`);
+    await wait(1800);
+    fs.writeFileSync(path.join(dir, 'config-editor.png'), (await win.webContents.capturePage()).toPNG());
+    // missing files dialog
+    await win.webContents.executeJavaScript(`C.missingFiles(${JSON.stringify(first.id)}, [{ path: 'mods/example-mod-1.0.jar', title: 'Example Mod', fileName: 'example-mod-1.0.jar', folder: 'mods', url: 'https://www.curseforge.com/minecraft/mc-mods/example' }, { path: 'mods/another-2.3.jar', title: 'Another Mod', fileName: 'another-2.3.jar', folder: 'mods', url: 'https://www.curseforge.com/minecraft/mc-mods/another' }], { forLaunch: true }); 0`);
+    await wait(1500);
+    fs.writeFileSync(path.join(dir, 'missing-files.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); C.importDialog(); 0`);
+    await wait(1200);
+    fs.writeFileSync(path.join(dir, 'import-dialog.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); location.hash = '#settings'`);
+    await wait(2500);
+    await win.webContents.executeJavaScript(`document.querySelector('.font-cards') && document.querySelector('.font-cards').scrollIntoView({ block: 'center' })`);
+    await wait(800);
+    fs.writeFileSync(path.join(dir, 'settings-fonts.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`Theme.applyFont('nunito'); location.hash = '#instance/${first.id}/mods'`);
+    await wait(2500);
+    fs.writeFileSync(path.join(dir, 'font-nunito.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`Theme.applyFont('onest')`);
   }
   // light theme + another accent
   await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); Theme.apply('light', '#5aa9f0'); location.hash = '#library'`);

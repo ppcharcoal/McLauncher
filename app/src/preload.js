@@ -1,5 +1,5 @@
 'use strict';
-const { contextBridge, ipcRenderer, webUtils } = require('electron');
+const { contextBridge, ipcRenderer, webUtils, webFrame } = require('electron');
 
 const listeners = new Map();
 ipcRenderer.on('event', (_e, channel, payload) => {
@@ -14,4 +14,5 @@ contextBridge.exposeInMainWorld('mcl', {
     return () => listeners.get(channel).delete(fn);
   },
   pathForFile: (file) => webUtils.getPathForFile(file),
+  setZoom: (f) => webFrame.setZoomFactor(Math.min(1.4, Math.max(0.8, Number(f) || 1))),
 });

@@ -124,8 +124,20 @@ async function prepare(inst, account, settings, report) {
   if (version.arguments && version.arguments.game) game = expandArgs(version.arguments.game, vars, features);
   else game = (version.minecraftArguments || '').split(' ').filter(Boolean).map(a => substitute(a, vars));
 
+  // Linux/Wayland: optionally run the game as a native Wayland window through the system GLFW
+  // (avoids XWayland crashes such as SIGSEGV in XCheckTypedWindowEvent on Hyprland).
+  const wantWayland = process.platform === 'linux' && (inst.nativeWayland ?? settings.nativeWayland) && !!process.env.WAYLAND_DISPLAY;
+  const usesGlfw = (version.libraries || []).some(l => /^org\.lwjgl:lwjgl-glfw:3/.test(l.name));
+  let glfwArg = null;
+  if (wantWayland && usesGlfw) {
+    const lib = systemGlfw();
+    if (!lib) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or turn Native Wayland off in the instance settings.');
+    glfwArg = `-Dorg.lwjgl.glfw.libname=${lib}`;
+  }
+
   const mem = Math.max(512, Number(inst.memory || settings.memory || 4096));
   const userJvm = [`-Xmx${mem}M`, `-Xms${Math.min(mem, 1024)}M`, ...PERF_FLAGS, '-Dlog4j2.formatMsgNoLookups=true'];
+  if (glfwArg) userJvm.push(glfwArg);
   const extra = `${settings.jvmArgs || ''} ${inst.jvmArgs || ''}`.trim();
   if (extra) userJvm.push(...extra.split(/\s+/));
 
@@ -135,6 +147,12 @@ async function prepare(inst, account, settings, report) {
   }
 
   return { java, args: [...userJvm, ...jvm, version.mainClass, ...game], cwd: gameDir, versionId: version.id };
+}
+
+function systemGlfw() {
+  if (process.platform !== 'linux') return null;
+  const c = ['/usr/lib/libglfw.so.3', '/usr/lib/libglfw.so', '/usr/lib64/libglfw.so.3', '/usr/lib/x86_64-linux-gnu/libglfw.so.3', '/usr/local/lib/libglfw.so.3'];
+  return c.find(p => fs.existsSync(p)) || null;
 }
 
 function hasCommand(cmd) {
@@ -168,4 +186,4 @@ function start(prep, settings, hooks) {
   return proc;
 }
 
-module.exports = { prepare, start, resolveVersion, expandArgs, substitute, hasCommand };
+module.exports = { systemGlfw, prepare, start, resolveVersion, expandArgs, substitute, hasCommand };

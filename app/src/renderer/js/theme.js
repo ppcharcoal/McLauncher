@@ -24,7 +24,53 @@
     root.style.setProperty('--accent-ink', ink(current.accent));
   }
   media.addEventListener('change', () => { if (current.theme === 'system') apply(); });
+
+  // ---- fonts ----
+  const FONTS = [
+    ['onest', 'Onest', 'Onest'], ['inter', 'Inter', 'Inter'], ['figtree', 'Figtree', 'Figtree'], ['nunito', 'Nunito', 'Nunito'],
+    ['system', 'System font', null], ['custom', 'Custom…', null],
+  ];
+  const FALLBACK = "'Noto Sans', 'DejaVu Sans', 'Segoe UI', Cantarell, Arial, Helvetica, sans-serif";
+  const RANGES = {
+    latin: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
+    'latin-ext': 'U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F, U+A720-A7FF',
+  };
+  const loaded = {};
+  /** Load a bundled font; if the file URL can't be read, ask the main process for the bytes instead. */
+  function loadBundled(id, family) {
+    if (loaded[id]) return loaded[id];
+    loaded[id] = Promise.all(Object.entries(RANGES).map(async ([sub, range]) => {
+      const file = `${id}-${sub}-wght-normal.woff2`;
+      const desc = { weight: '100 900', style: 'normal', unicodeRange: range, display: 'swap' };
+      let face;
+      try { face = await new FontFace(family, `url("fonts/${file}")`, desc).load(); }
+      catch (e) {
+        try { face = await new FontFace(family, await window.mcl.call('fontData', file), desc).load(); }
+        catch (e2) { window.mcl && window.mcl.call('rendererLog', `font ${file} failed: ${e.message} / ${e2.message}`); return; }
+      }
+      document.fonts.add(face);
+    }));
+    return loaded[id];
+  }
+  function applyFont(id = 'onest', custom = '') {
+    const f = FONTS.find(x => x[0] === id) || FONTS[0];
+    current.font = f[0]; current.fontCustom = custom;
+    let stack;
+    if (f[0] === 'system') stack = `system-ui, ${FALLBACK}`;
+    else if (f[0] === 'custom') stack = custom ? `"${custom.replace(/["\\]/g, '')}", ${FALLBACK}` : `system-ui, ${FALLBACK}`;
+    else { loadBundled(f[0], f[2]); stack = `'${f[2]}', ${FALLBACK}`; }
+    document.documentElement.style.setProperty('--font', stack);
+  }
+  function applyScale(scale) {
+    const v = Number(scale) || 1;
+    current.scale = v;
+    try { window.mcl.setZoom(v); } catch {}
+  }
+
   const q = new URLSearchParams(location.search);
   apply(q.get('theme') || 'system', q.get('accent') || ACCENTS[0][1]);
-  window.Theme = { apply, ACCENTS, get: () => ({ ...current, resolved: resolved() }) };
+  applyFont(q.get('font') || 'onest', q.get('fontCustom') || '');
+  applyScale(q.get('scale') || 1);
+  const loadFont = (id) => { const f = FONTS.find(x => x[0] === id); return f && f[2] ? loadBundled(f[0], f[2]) : Promise.resolve(); };
+  window.Theme = { apply, applyFont, applyScale, loadFont, ACCENTS, FONTS, get: () => ({ ...current, resolved: resolved() }) };
 })();

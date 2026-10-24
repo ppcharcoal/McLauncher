@@ -264,19 +264,21 @@ async function importMrpack(zip, { name, iconUrl, source, report = () => {} } = 
   try {
     const gd = instances.gameDir(inst.id);
     const files = (index.files || []).filter(f => !f.env || f.env.client !== 'unsupported');
+    const integrity = require('./integrity');
+    integrity.savePackFiles(inst.id, files.map(f => ({ path: f.path, sha1: f.hashes && f.hashes.sha1, size: f.fileSize, urls: f.downloads || [] })));
+    // A file that fails to download does not abort the install; it is fetched elsewhere or listed for the player.
     await pool(files, 8, async f => {
       const dest = safeJoin(gd, f.path);
-      let lastErr;
       for (const url of f.downloads || []) {
-        try { await download(url, dest, { sha1: f.hashes && f.hashes.sha1, size: f.fileSize }); return; } catch (e) { lastErr = e; }
+        try { await download(url, dest, { sha1: f.hashes && f.hashes.sha1, size: f.fileSize }); return; } catch {}
       }
-      throw lastErr || new Error('No download for ' + f.path);
     }, (d, t) => report('Downloading modpack files', d / t));
     extractOverrides(zip, gd, ['overrides/', 'client-overrides/']);
     if (iconUrl) { try { await instances.setIcon(inst.id, { url: iconUrl }); } catch {} }
+    const { missing } = await integrity.repair(inst.id, report);
     report('Reading mod details');
     try { await identifyInstance(inst.id); } catch {}
-    return instances.get(inst.id);
+    return Object.assign(instances.get(inst.id), { missing });
   } catch (e) {
     instances.remove(inst.id);
     throw e;

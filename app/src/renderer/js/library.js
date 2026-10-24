@@ -8,6 +8,11 @@ Pages.play = async (inst) => {
     await C.signIn();
     if (!App.account) return;
   }
+  // Modpacks: make sure every file is in place before starting.
+  try {
+    const check = await U.call('packVerify', inst.id);
+    if (check.missing.length && !(await C.missingFiles(inst.id, check.missing, { forLaunch: true }))) return;
+  } catch {}
   try { await U.call('launch', inst.id); App.refreshInstances(); }
   catch (e) { C.toast(e.message, 'err'); App.refreshInstances(); }
 };
@@ -17,15 +22,7 @@ Pages.newInstanceFlow = async (preset) => {
   if (inst) { await App.refreshInstances(); App.go(`#instance/${inst.id}/mods`); }
 };
 
-Pages.importFlow = async () => {
-  try {
-    const r = await U.call('importPack');
-    if (!r || !r.instance) return;
-    await App.refreshInstances();
-    App.go(`#instance/${r.instance.id}/mods`);
-    if (r.blocked && r.blocked.length) C.blocked(r.blocked, r.instance.id);
-  } catch (e) { C.toast(e.message, 'err'); }
-};
+Pages.importFlow = () => C.importDialog();
 
 Pages.library = async (main) => {
   const { h } = U;

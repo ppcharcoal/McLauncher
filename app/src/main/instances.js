@@ -60,7 +60,7 @@ function create({ name, mcVersion, loader = 'fabric', loaderVersion = null, memo
 function update(id, patch) {
   const m = readJson(metaFile(id), null);
   if (!m) throw new Error('Instance not found');
-  const allowed = ['name', 'mcVersion', 'loader', 'loaderVersion', 'memory', 'jvmArgs', 'javaPath', 'lastPlayed', 'playTime', 'width', 'height', 'source'];
+  const allowed = ['name', 'mcVersion', 'loader', 'loaderVersion', 'memory', 'jvmArgs', 'javaPath', 'lastPlayed', 'playTime', 'width', 'height', 'source', 'nativeWayland'];
   for (const k of allowed) if (k in patch) m[k] = patch[k];
   writeJson(metaFile(id), m);
   return get(id);

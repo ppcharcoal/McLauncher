@@ -53,6 +53,16 @@ Pages.instance = async (main, route) => {
     C.modal({ title: inst.name, body: h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
       h('button.btn', { on: { click: async () => { const d = await U.call('duplicateInstance', inst.id); document.querySelector('.scrim').remove(); await App.refreshInstances(); App.go(`#instance/${d.id}`); } } }, U.svg('copy'), 'Duplicate instance'),
       h('button.btn', { on: { click: () => { document.querySelector('.scrim').remove(); C.exportDialog(inst); } } }, U.svg('upload'), 'Export modpack'),
+      h('button.btn', { on: { click: async () => {
+        document.querySelector('.scrim').remove();
+        try {
+          const r = await U.call('packRepair', inst.id);
+          const v = await U.call('packVerify', inst.id);
+          if (!v.total) C.toast('This instance was not installed from a modpack, so there is no file list to check.');
+          else if (!r.missing.length) C.toast(r.fixed ? `Downloaded ${r.fixed} missing file${r.fixed === 1 ? '' : 's'}. All ${v.total} modpack files are in place.` : `All ${v.total} modpack files are in place.`);
+          else C.missingFiles(inst.id, r.missing);
+        } catch (e) { C.toast(e.message, 'err'); }
+      } } }, U.svg('check'), 'Check modpack files'),
       inst.iconUrl ? h('button.btn', { on: { click: async () => { await U.call('clearIcon', inst.id); document.querySelector('.scrim').remove(); refresh(); App.refreshInstances(); } } }, U.svg('image'), 'Remove picture') : null,
       h('button.btn.danger', { on: { click: async () => {
         document.querySelector('.scrim').remove();
@@ -176,10 +186,10 @@ async function renderFiles(body, inst) {
   let selected = null;
   const crumbs = h('div.crumbs');
   const listEl = h('div.list');
-  const preview = h('div.preview', h('p.faint', { style: { margin: 0 } }, 'Select a text file to preview it here. Double-click to open anything with your default app.'));
+  const preview = h('div.preview', h('p.faint', { style: { margin: 0 } }, 'Select a config or text file to view and edit it here. Double-click any file to open it with your default app.'));
   const quick = h('div.quick', ['mods', 'config', 'resourcepacks', 'shaderpacks', 'saves', 'logs', 'crash-reports'].map(d => h('button.btn.small', { on: { click: () => open(d) } }, U.svg('folder'), d)));
   async function open(path) {
-    rel = path; selected = null;
+    rel = path; selected = null; editor = null;
     const parts = rel ? rel.split('/') : [];
     crumbs.replaceChildren(h('button', { on: { click: () => open('') } }, 'minecraft'), ...parts.flatMap((p, i) => ['/', h('button', { on: { click: () => open(parts.slice(0, i + 1).join('/')) } }, p)]));
     let entries = [];
@@ -190,8 +200,8 @@ async function renderFiles(body, inst) {
       const p = rel ? `${rel}/${e.name}` : e.name;
       const row = h('div.file-row' + (e.isDir ? '.dir' : ''), { tabindex: 0,
         on: {
-          click: () => { listEl.querySelectorAll('.sel').forEach(x => x.classList.remove('sel')); row.classList.add('sel'); selected = p; showPreview(e, p); },
-          dblclick: () => e.isDir ? open(p) : U.call('openPath', inst.id, p),
+          click: async () => { if (selected === p || !(await confirmLeave())) return; listEl.querySelectorAll('.sel').forEach(x => x.classList.remove('sel')); row.classList.add('sel'); selected = p; showPreview(e, p); },
+          dblclick: async () => { if (e.isDir) { if (await confirmLeave()) open(p); } else U.call('openPath', inst.id, p); },
           keydown: (ev) => { if (ev.key === 'Enter') e.isDir ? open(p) : U.call('openPath', inst.id, p); },
         } }, U.svg(e.isDir ? 'folder' : 'file'), h('span.n', e.name), h('span.s', e.isDir ? '' : U.size(e.size)));
       rows.push(row);
@@ -199,11 +209,77 @@ async function renderFiles(body, inst) {
     if (!entries.length) rows.push(h('p.faint', { style: { padding: '14px', margin: 0 } }, 'This folder is empty.'));
     listEl.replaceChildren(...rows);
   }
+  // ---------- text editor ----------
+  let editor = null; // { path, original, ta, dirtyEl }
+  const isDirty = () => editor && editor.ta.value !== editor.original;
+  async function confirmLeave() {
+    if (!isDirty()) return true;
+    return C.confirm('Discard changes?', `You have unsaved changes in ${editor.path.split('/').pop()}.`, { ok: 'Discard changes', danger: true });
+  }
+  async function save() {
+    if (!editor) return;
+    const name = editor.path.split('/').pop();
+    if (/\.json$/i.test(name)) {
+      try { JSON.parse(editor.ta.value); }
+      catch (err) {
+        const ok = await C.confirm('This is not valid JSON', `${err.message}. The game may reset this file if you save it like this.`, { ok: 'Save anyway', danger: true });
+        if (!ok) return;
+      }
+    }
+    try {
+      await U.call('writeText', inst.id, editor.path, editor.ta.value);
+      editor.original = editor.ta.value;
+      updateDirty();
+      C.toast(`Saved ${name}`);
+    } catch (err) { C.toast(err.message, 'err'); }
+  }
+  function updateDirty() {
+    if (!editor) return;
+    const d = isDirty();
+    editor.dirtyEl.textContent = d ? 'Unsaved changes' : 'Saved';
+    editor.dirtyEl.classList.toggle('dirty', d);
+    editor.saveBtn.disabled = !d;
+    editor.revertBtn.disabled = !d;
+    if (editor.status && /\.json$/i.test(editor.path)) {
+      try { JSON.parse(editor.ta.value); editor.status.textContent = 'Valid JSON'; editor.status.className = 'ed-status ok'; }
+      catch (err) { editor.status.textContent = err.message; editor.status.className = 'ed-status bad'; }
+    }
+  }
+  const onKey = (ev) => { if ((ev.ctrlKey || ev.metaKey) && ev.key.toLowerCase() === 's' && editor) { ev.preventDefault(); save(); } };
+  document.addEventListener('keydown', onKey);
+
   async function showPreview(e, p) {
+    editor = null;
     if (e.isDir) { preview.replaceChildren(h('p.muted', { style: { margin: 0 } }, `Folder ${e.name}. Double-click to open it.`)); return; }
     if (/\.(png|jpe?g|gif|webp)$/i.test(e.name)) { preview.replaceChildren(h('img', { src: `mcl://instances/${encodeURIComponent(inst.id)}/minecraft/${p.split('/').map(encodeURIComponent).join('/')}`, style: { maxWidth: '100%', imageRendering: 'pixelated' }, alt: e.name })); return; }
     if (!TEXT_EXT.test(e.name)) { preview.replaceChildren(h('p.muted', { style: { margin: 0 } }, `${e.name}, ${U.size(e.size)}. Double-click to open it with your default app.`)); return; }
-    try { preview.replaceChildren(h('pre', await U.call('readText', inst.id, p))); } catch (err) { preview.replaceChildren(h('p.muted', err.message)); }
+    let text;
+    try { text = await U.call('readText', inst.id, p); } catch (err) { preview.replaceChildren(h('p.muted', err.message)); return; }
+    const readOnly = /\.log$/i.test(e.name) || /^(logs|crash-reports)\//.test(p);
+    if (readOnly) { preview.replaceChildren(h('pre', text)); return; }
+    const ta = h('textarea.editor', { spellcheck: false, autocomplete: 'off', 'aria-label': `Edit ${e.name}`, wrap: 'off' });
+    ta.value = text;
+    const dirtyEl = h('span.ed-dirty', 'Saved');
+    const saveBtn = h('button.btn.small.primary', { disabled: true, title: 'Save (Ctrl+S)', on: { click: save } }, U.svg('check'), 'Save');
+    const revertBtn = h('button.btn.small', { disabled: true, on: { click: () => { ta.value = editor.original; updateDirty(); } } }, 'Revert');
+    const status = /\.json$/i.test(e.name) ? h('span.ed-status') : null;
+    editor = { path: p, original: text, ta, dirtyEl, saveBtn, revertBtn, status };
+    ta.addEventListener('input', updateDirty);
+    ta.addEventListener('keydown', (ev) => {
+      if (ev.key === 'Tab' && !ev.shiftKey) {
+        ev.preventDefault();
+        const { selectionStart: a, selectionEnd: b } = ta;
+        ta.setRangeText('  ', a, b, 'end');
+        updateDirty();
+      }
+    });
+    const running = inst.session && ['running', 'starting'].includes(inst.session.state);
+    preview.replaceChildren(h('div.ed',
+      h('div.ed-bar', h('b', e.name), dirtyEl, h('div.spacer'), revertBtn, saveBtn),
+      running ? h('div.ed-note', 'The game is running. Most mods read their config at startup, so changes apply next time you play.') : null,
+      ta,
+      status ? h('div.ed-foot', status) : null));
+    updateDirty();
   }
   body.append(
     h('div.toolbar', crumbs, h('div.spacer'),
@@ -215,6 +291,7 @@ async function renderFiles(body, inst) {
     quick,
     h('div.files', listEl, preview));
   await open('');
+  return () => document.removeEventListener('keydown', onKey);
 }
 
 // ---------- logs ----------
@@ -240,12 +317,18 @@ async function renderLogs(body, inst) {
     const s = cur && cur.info;
     banner.replaceChildren();
     if (!s || !liveMode) return;
+    let fixBtn = null;
     if (s.state === 'exited' && s.code !== 0) {
       const all = cur.lines.join('\n');
       let tip = s.crashReport ? 'A crash report was written. The full log is below.' : 'Look for red lines in the log below.';
       if (/LinuxDisplay\.getAvailableDisplayModes|xrandr/i.test(all)) tip = 'Older Minecraft versions need the xrandr tool. Install it (on Arch: sudo pacman -S xorg-xrandr) and press Play again.';
+      else if (/XCheckTypedWindowEvent|libX11\.so[^\n]*SIGSEGV|SIGSEGV[\s\S]{0,400}libX11/i.test(all)) {
+        tip = 'The game crashed inside XWayland (libX11). Running it as a native Wayland window usually fixes this. It needs the glfw package (on Arch: sudo pacman -S glfw).';
+        fixBtn = h('button.btn', { on: { click: async () => { await U.call('updateInstance', inst.id, { nativeWayland: true }); C.toast('Native Wayland turned on for this instance'); Pages.play(inst); } } }, 'Use native Wayland and play');
+      }
       else if (/Incompatible mods found|Mod resolution failed|missing mandatory dependencies|Missing or unsupported mandatory dependencies/i.test(all)) tip = 'Some mods are incompatible or missing a dependency. The log below names them.';
       banner.append(h('div.banner.crash', h('div.grow', h('b', `Minecraft closed with an error (code ${s.code})`), h('div.muted', { style: { fontSize: '13px' } }, tip)),
+        fixBtn,
         s.crashReport ? h('button.btn', { on: { click: async () => C.modal({ title: 'Crash report', wide: true, body: h('pre', { style: { whiteSpace: 'pre-wrap', fontSize: '12px', margin: 0 } }, await U.call('readText', inst.id, s.crashReport)), actions: [{ label: 'Close' }] }) } }, 'View crash report') : null,
         h('button.btn.primary', { on: { click: () => Pages.play(inst) } }, U.svg('play'), 'Play again')));
     } else if (s.state === 'exited') {
@@ -297,6 +380,14 @@ async function renderLogs(body, inst) {
 async function renderInstSettings(body, inst, { refresh }) {
   const { h } = U;
   const st = { name: inst.name, mcVersion: inst.mcVersion, loader: inst.loader, loaderVersion: inst.loaderVersion || '', memory: inst.memory || 4096, jvmArgs: inst.jvmArgs || '', javaPath: inst.javaPath || '', width: inst.width || '', height: inst.height || '' };
+  const wl = await U.call('waylandInfo');
+  const wlSel = h('select.input', { on: { change: e => { st.nativeWayland = e.target.value === 'global' ? null : e.target.value === 'on'; } } },
+    h('option', { value: 'global' }, 'Use the global setting'), h('option', { value: 'on' }, 'On: native Wayland window'), h('option', { value: 'off' }, 'Off: XWayland'));
+  wlSel.value = inst.nativeWayland == null ? 'global' : inst.nativeWayland ? 'on' : 'off';
+  st.nativeWayland = inst.nativeWayland ?? null;
+  const waylandSection = wl.linux ? h('div.section', h('h2', 'Display'),
+    h('p', wl.glfw ? 'Run Minecraft as a native Wayland window (uses your system GLFW). Try this if the game crashes or misbehaves on Hyprland.' : 'Native Wayland needs the system GLFW library. Install it with: sudo pacman -S glfw'),
+    h('div.field', { style: { marginBottom: 0 } }, h('label', 'Native Wayland'), wlSel)) : null;
   const picker = C.loaderPicker({ loader: st.loader || 'vanilla', mc: st.mcVersion, loaderVersion: st.loaderVersion, allowSnapshots: true });
   const memOut = h('output', (st.memory / 1024).toFixed(1) + ' GB');
   body.append(h('div.settings-wrap',
@@ -306,6 +397,7 @@ async function renderInstSettings(body, inst, { refresh }) {
         inst.iconUrl ? h('button.btn.ghost', { on: { click: async () => { await U.call('clearIcon', inst.id); refresh(); App.refreshInstances(); } } }, 'Use generated picture') : null)),
     h('div.section', h('h2', 'Game version'), h('p', 'Changing versions can break mods and worlds. Make a copy first if you are unsure.'),
       picker.el),
+    waylandSection,
     h('div.section', h('h2', 'Performance'), h('p', 'Memory given to Minecraft. Most modpacks run well with 4–8 GB.'),
       h('div.field', h('div.range-row', h('input', { type: 'range', min: 1024, max: 32768, step: 512, value: st.memory, on: { input: e => { st.memory = +e.target.value; memOut.textContent = (st.memory / 1024).toFixed(1) + ' GB'; } } }), memOut)),
       h('div.grid2',
@@ -316,7 +408,7 @@ async function renderInstSettings(body, inst, { refresh }) {
     h('div.row', h('div.spacer'), h('button.btn.primary', { on: { click: async () => {
       try {
         picker.validate();
-        await U.call('updateInstance', inst.id, { name: st.name.trim() || inst.name, ...picker.get(), memory: st.memory, jvmArgs: st.jvmArgs, javaPath: st.javaPath.trim(), width: +st.width || null, height: +st.height || null });
+        await U.call('updateInstance', inst.id, { name: st.name.trim() || inst.name, ...picker.get(), nativeWayland: st.nativeWayland, memory: st.memory, jvmArgs: st.jvmArgs, javaPath: st.javaPath.trim(), width: +st.width || null, height: +st.height || null });
         C.toast('Settings saved'); refresh(); App.refreshInstances();
       } catch (e) { C.toast(e.message, 'err'); }
     } } }, 'Save changes'))));

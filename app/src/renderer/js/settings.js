@@ -34,6 +34,36 @@ Pages.settings = async (main) => {
   }
   drawThemes(); drawSwatches();
 
+  // ---- font & text size ----
+  const fontCards = h('div.font-cards');
+  const customIn = h('input.input', { placeholder: 'Type an installed font name', value: s.fontCustom || '', list: 'mcl-font-list', 'aria-label': 'Custom font name',
+    on: { change: async e => { await save({ font: 'custom', fontCustom: e.target.value.trim() }); Theme.applyFont('custom', s.fontCustom); drawFonts(); } } });
+  const fontList = h('datalist#mcl-font-list');
+  const customRow = h('div.field', { style: { marginTop: '10px', marginBottom: 0 } }, h('label', 'Custom font'), customIn, fontList, h('span.hint', 'Any font installed on this computer.'));
+  function drawFonts() {
+    fontCards.replaceChildren(...Theme.FONTS.map(([id, label, family]) => {
+      if (family) Theme.loadFont(id);
+      const fam = family ? `'${family}', sans-serif` : id === 'custom' && s.fontCustom ? `"${s.fontCustom}", sans-serif` : 'system-ui, sans-serif';
+      return h('button.font-card' + (s.font === id ? '.on' : ''), { type: 'button', 'aria-pressed': String(s.font === id), on: { click: async () => {
+        if (id === 'custom') { customRow.style.display = ''; customIn.focus(); if (!s.fontCustom) return; }
+        await save({ font: id }); Theme.applyFont(id, s.fontCustom); drawFonts();
+      } } }, h('b', { style: { fontFamily: fam } }, 'Aa'), h('span', label));
+    }));
+    customRow.style.display = s.font === 'custom' ? '' : 'none';
+  }
+  drawFonts();
+  (async () => {
+    let names = [];
+    try { if (window.queryLocalFonts) names = [...new Set((await window.queryLocalFonts()).map(f => f.family))]; } catch {}
+    if (!names.length) { try { names = await U.call('systemFonts'); } catch {} }
+    fontList.replaceChildren(...names.slice(0, 2000).map(n => h('option', { value: n })));
+  })();
+  const SCALES = [[0.9, 'Smaller'], [1, 'Default'], [1.1, 'Larger'], [1.2, 'Largest']];
+  const scaleSeg = h('div.segmented', SCALES.map(([v, label]) => h('button' + (Number(s.scale || 1) === v ? '.on' : ''), { type: 'button', on: { click: async (e) => {
+    await save({ scale: v }); Theme.applyScale(v);
+    [...scaleSeg.children].forEach(b => b.classList.toggle('on', b === e.currentTarget));
+  } } }, label)));
+
   const accounts = h('div', acc.list.length ? acc.list.map(a => h('div.acc-row', U.skinHead(a.skin, a.name), h('div.grow', h('b', a.name), h('small.muted', { style: { display: 'block' } }, a.id === acc.active ? 'Playing as this account' : 'Microsoft account')),
     a.id !== acc.active ? h('button.btn.small', { on: { click: async () => { await U.call('setActiveAccount', a.id); App.refreshAccount(); App.go('#settings'); } } }, 'Use') : null,
     h('button.btn.small.ghost', { on: { click: async () => { await U.call('removeAccount', a.id); App.refreshAccount(); App.go('#settings'); } } }, 'Sign out')))
@@ -43,11 +73,14 @@ Pages.settings = async (main) => {
     h('div.settings-wrap',
       h('div.section', h('h2', 'Appearance'), h('p', 'Pick a theme and the color used for buttons and highlights.'),
         h('div.field', h('label', 'Theme'), themeCards),
-        h('div.field', { style: { marginBottom: 0 } }, h('label', 'Accent color'), swatches)),
+        h('div.field', h('label', 'Accent color'), swatches),
+        h('div.field', h('label', 'Font'), fontCards, customRow),
+        h('div.field', { style: { marginBottom: 0 } }, h('label', 'Text size'), scaleSeg)),
       h('div.section', h('h2', 'Accounts'), h('p', 'Sign in with the Microsoft account that owns Minecraft: Java Edition.'), accounts,
         h('button.btn.primary', { style: { marginTop: '10px' }, on: { click: async () => { await C.signIn(); App.go('#settings'); } } }, U.svg('user'), acc.list.length ? 'Add another account' : 'Sign in with Microsoft')),
       h('div.section', h('h2', 'While playing'), h('p', 'McLauncher steps out of the way so the game gets all the resources.'),
         toggle('closeOnLaunch', 'Close the launcher while the game runs', 'The launcher window closes once Minecraft is up and reopens on the game’s logs when you quit. Nothing is lost.'),
+        info.platform === 'linux' ? toggle('nativeWayland', 'Native Wayland game window', 'Runs Minecraft through your system GLFW instead of XWayland. Helps with crashes on Hyprland. Needs the glfw package (sudo pacman -S glfw). Instances can override this.') : null,
         info.platform === 'linux' ? toggle('gamemode', 'Use Feral GameMode', info.gamemode ? 'gamemoderun was found and will wrap the game.' : 'Install the gamemode package to use this (sudo pacman -S gamemode).') : null),
       h('div.section', h('h2', 'Java'), h('p', 'By default McLauncher downloads the Java version each Minecraft release needs.'),
         h('div.field', h('label', 'Default memory'), h('div.range-row', h('input', { type: 'range', min: 1024, max: 32768, step: 512, value: s.memory, on: { input: e => { memOut.textContent = (e.target.value / 1024).toFixed(1) + ' GB'; }, change: e => save({ memory: +e.target.value }) } }), memOut)),

@@ -170,4 +170,37 @@ t('prism neoforge import', () => {
     console.log('ok - prism neoforge import (async)');
   });
 });
+t('import: nested CurseForge zip, raw game-files zip, folder, integrity', () => {
+  const integrity = require('../src/main/integrity');
+  // raw zip with a .minecraft folder and a fabric mod → needs setup with guesses
+  const raw = new AdmZip();
+  const jar = new AdmZip();
+  jar.addFile('fabric.mod.json', Buffer.from(JSON.stringify({ id: 'x', depends: { minecraft: '~1.20.1' } })));
+  raw.addFile('MyPack/.minecraft/mods/x.jar', jar.toBuffer());
+  raw.addFile('MyPack/.minecraft/config/x.json', Buffer.from('{}'));
+  const rawFile = path.join(process.env.MCL_DATA_DIR, 'raw.zip');
+  raw.writeZip(rawFile);
+  packs.importFile(rawFile).then(r => {
+    assert.ok(r.needsSetup);
+    assert.strictEqual(r.guess.loader, 'fabric');
+    assert.strictEqual(r.guess.mcVersion, '1.20.1');
+    assert.strictEqual(r.source.root, 'MyPack/.minecraft/');
+    const inst = instances.create({ name: 'Raw', mcVersion: '1.20.1', loader: 'fabric', loaderVersion: '0.16.0' });
+    packs.importRawInto(inst.id, r.source);
+    assert.ok(fs.existsSync(path.join(instances.gameDir(inst.id), 'mods', 'x.jar')));
+    assert.ok(fs.existsSync(path.join(instances.gameDir(inst.id), 'config', 'x.json')));
+    // integrity: one present, one missing; adding the missing file by hand places it
+    fs.writeFileSync(path.join(instances.gameDir(inst.id), 'mods', 'here.jar'), 'abc');
+    integrity.savePackFiles(inst.id, [{ path: 'mods/here.jar', size: 3 }, { path: 'mods/gone.jar', title: 'Gone', page: 'https://example.com' }]);
+    let v = integrity.verify(inst.id);
+    assert.strictEqual(v.missing.length, 1);
+    assert.strictEqual(v.missing[0].fileName, 'gone.jar');
+    const dl = path.join(process.env.MCL_DATA_DIR, 'gone.jar');
+    fs.writeFileSync(dl, 'zzz');
+    return integrity.addManual(inst.id, [dl]).then(res => {
+      assert.strictEqual(res.missing.length, 0);
+      console.log('ok - raw zip import + integrity (async)');
+    });
+  }).catch(e => { console.error(e); process.exitCode = 1; });
+});
 process.on('exit', () => console.log(`${n} test groups passed`));

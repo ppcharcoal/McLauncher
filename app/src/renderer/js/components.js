@@ -55,19 +55,104 @@ C.onTask = (t) => {
 };
 
 // ---------- CurseForge files that need a manual download ----------
-C.blocked = (items, instId) => {
-  C.modal({
-    title: 'Download these from CurseForge',
-    subtitle: 'Their authors only allow downloads from the CurseForge website. Download each file, then put it in the folder shown.',
-    wide: true,
-    body: h('div.list.blocked-list', items.map(it => h('div.item',
-      h('div.txt', h('b', it.title), h('small', `${it.fileName} → ${it.folder}`)),
-      h('button.btn.small', { on: { click: () => U.call('openExternal', it.url) } }, U.svg('external'), 'Open download page')))),
-    actions: [
-      instId ? { label: 'Open mods folder', onClick: () => { U.call('openFolder', instId, 'mods'); return false; } } : null,
-      { label: 'Done', kind: 'primary' },
-    ].filter(Boolean),
+// ---------- modpack files that are missing ----------
+/**
+ * Shows files a modpack still needs. The player can open each download page, let McLauncher look in
+ * the Downloads folder, pick or drop the downloaded files, or continue without them.
+ * Resolves true when the player chooses to play anyway.
+ */
+C.missingFiles = (instId, items, { forLaunch = false } = {}) => new Promise((resolve) => {
+  let missing = items || [];
+  const list = h('div.list.blocked-list');
+  const summary = h('p.muted', { style: { margin: '0 0 12px' } });
+  const drop = h('div.dropzone', U.svg('download'), h('span', 'Drop downloaded files here'));
+  function draw() {
+    summary.textContent = missing.length
+      ? `${missing.length} file${missing.length === 1 ? ' is' : 's are'} missing. Their authors only allow downloads from their website, or the download failed. Download each one, then drop it here or use the buttons below — McLauncher puts it in the right folder.`
+      : 'All modpack files are in place.';
+    list.replaceChildren(...missing.map(it => h('div.item',
+      h('div.txt', h('b', it.title), h('small', `${it.fileName}  →  ${it.folder}`)),
+      it.url ? h('button.btn.small', { on: { click: () => U.call('openExternal', it.url) } }, U.svg('external'), 'Download page') : null,
+      h('button.btn.small.icon.ghost', { title: 'Go without this file', 'aria-label': `Go without ${it.title}`, on: { click: async () => { const r = await U.call('packForget', instId, [it.path]); missing = r.missing; draw(); } } }, U.svg('x')))));
+    list.style.display = missing.length ? '' : 'none';
+    drop.style.display = missing.length ? '' : 'none';
+  }
+  async function apply(promise, verb) {
+    try {
+      const r = await promise;
+      const before = missing.length;
+      missing = r.missing;
+      const n = before - missing.length;
+      C.toast(n > 0 ? `${verb} ${n} file${n === 1 ? '' : 's'}` : 'No matching files found', n > 0 ? 'ok' : 'err');
+      draw();
+      if (!missing.length) { m.close(true); }
+    } catch (e) { C.toast(e.message, 'err'); }
+  }
+  drop.addEventListener('dragover', e => { e.preventDefault(); drop.classList.add('on'); });
+  drop.addEventListener('dragleave', () => drop.classList.remove('on'));
+  drop.addEventListener('drop', e => {
+    e.preventDefault(); e.stopPropagation(); drop.classList.remove('on');
+    const files = [...e.dataTransfer.files].map(f => window.mcl.pathForFile(f)).filter(Boolean);
+    if (files.length) apply(U.call('packAddFiles', instId, files), 'Added');
   });
+  draw();
+  const m = C.modal({
+    title: forLaunch ? 'Some modpack files are missing' : 'Modpack files',
+    wide: true,
+    body: h('div', summary, list, drop,
+      h('div.row', { style: { marginTop: '12px', flexWrap: 'wrap', gap: '8px' } },
+        h('button.btn.small', { on: { click: () => apply(U.call('packFromDownloads', instId), 'Found') } }, U.svg('search'), 'Look in Downloads'),
+        h('button.btn.small', { on: { click: () => apply(U.call('packAddFiles', instId), 'Added') } }, U.svg('plus'), 'Add files…'),
+        h('button.btn.small', { on: { click: () => apply(U.call('packRepair', instId), 'Downloaded') } }, U.svg('refresh'), 'Try downloading again'),
+        h('button.btn.small.ghost', { on: { click: () => U.call('openFolder', instId, 'mods') } }, U.svg('folder'), 'Open mods folder'))),
+    onClose: (v) => resolve(v === 'play' || (forLaunch && v === true)),
+    actions: forLaunch
+      ? [{ label: 'Cancel', value: false }, { label: 'Play anyway', kind: 'primary', value: 'play' }]
+      : [{ label: 'Done', kind: 'primary' }],
+  });
+});
+// Back-compat name used by imports
+C.blocked = (items, instId) => instId ? C.missingFiles(instId, items) : C.modal({
+  title: 'Download these by hand', wide: true,
+  body: h('div.list.blocked-list', items.map(it => h('div.item', h('div.txt', h('b', it.title), h('small', it.fileName)),
+    it.url ? h('button.btn.small', { on: { click: () => U.call('openExternal', it.url) } }, U.svg('external'), 'Download page') : null))),
+  actions: [{ label: 'Done', kind: 'primary' }],
+});
+
+// ---------- import ----------
+C.importDialog = () => new Promise((resolve) => {
+  const choose = async (kind) => {
+    m.close(null);
+    try {
+      const r = await U.call('importPack', null, kind);
+      resolve(await C.finishImport(r));
+    } catch (e) { C.toast(e.message, 'err'); resolve(null); }
+  };
+  const m = C.modal({
+    title: 'Import a modpack',
+    subtitle: 'Modrinth .mrpack, CurseForge .zip (Fabric, Forge, NeoForge), Prism Launcher / MultiMC exports and instance folders, McLauncher backups, or any zip or folder with mods and configs.',
+    body: h('div.import-choices',
+      h('button.import-choice', { on: { click: () => choose('file') } }, U.svg('file'), h('b', 'Choose a file'), h('span', '.mrpack or .zip')),
+      h('button.import-choice', { on: { click: () => choose('folder') } }, U.svg('folder'), h('b', 'Choose a folder'), h('span', 'Prism/MultiMC instance or a .minecraft folder'))),
+    actions: [{ label: 'Cancel' }],
+    onClose: (v) => { if (v === null) {} },
+  });
+});
+
+/** Handles every import result: opens the instance, asks for version/loader when unknown, shows missing files. */
+C.finishImport = async (r) => {
+  if (!r) return null;
+  let inst = r.instance;
+  if (r.needsSetup) {
+    C.toast('Pick the Minecraft version and loader for these files');
+    const created = await C.newInstance({ name: r.guess.name, loader: r.guess.loader, mcVersion: r.guess.mcVersion, title: 'Set up imported files' });
+    if (!created) return null;
+    inst = await U.call('importRawInto', created.id, r.source);
+  }
+  await App.refreshInstances();
+  App.go(`#instance/${inst.id}/mods`);
+  if (r.blocked && r.blocked.length) C.missingFiles(inst.id, r.blocked);
+  return inst;
 };
 
 // ---------- loader + version picker (new instance & instance settings) ----------
@@ -167,7 +252,7 @@ C.newInstance = async (preset = {}) => {
     h('div.field', h('label', 'Memory'), h('div.range-row', memIn, memOut)));
 
   return new Promise(res => C.modal({
-    title: 'New instance', body, onClose: res,
+    title: preset.title || 'New instance', body, onClose: res,
     actions: [
       { label: 'Cancel' },
       { label: 'Create instance', kind: 'primary', onClick: async () => {
