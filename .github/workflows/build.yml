@@ -243,8 +243,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -la dist
+          git push -q --delete origin ci-logs ci-logs-win || true
           TAG="v$(node -p "require('./app/package.json').version")"
           if gh release view "$TAG" >/dev/null 2>&1; then echo "$TAG already released"; exit 0; fi
           gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "McLauncher $TAG" --notes-file RELEASE_NOTES.md
-          git push -q --delete origin ci-logs || true
-          git push -q --delete origin ci-logs-win || true
