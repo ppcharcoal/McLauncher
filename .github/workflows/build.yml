@@ -37,8 +37,15 @@ jobs:
         run: |
           mkdir -p ../ci-out
           set -o pipefail
-          node test/online.js 2>&1 | tee ../ci-out/online.txt
+          timeout 1200 node test/online.js 2>&1 | tee ../ci-out/online.txt
+      - name: Publish early output
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          rm -rf /tmp/pub && mkdir -p /tmp/pub && cp -r ../ci-out/. /tmp/pub/ 2>/dev/null || true
+          cd /tmp/pub && git init -q -b ci-logs && git -c user.name=ci -c user.email=ci@localhost add -A && git -c user.name=ci -c user.email=ci@localhost commit -qm "CI output (online) ${GITHUB_SHA}" --allow-empty
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-logs
       - name: Launch newest Minecraft + Fabric through the launcher
+        timeout-minutes: 12
         if: always()
         env:
           MCL_TEST_OFFLINE: CiPlayer
@@ -47,10 +54,12 @@ jobs:
           MCL_TEST_RESULT: ${{ github.workspace }}/launch-newest.json
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
-          timeout 900 xvfb-run -a -s "-screen 0 1600x1000x24" npx electron . --no-sandbox || true
+          timeout -k 15 600 xvfb-run -a -s "-screen 0 1600x1000x24" npx electron . --no-sandbox > "$MCL_TEST_RESULT.out" 2>&1 || true
+          tail -50 "$MCL_TEST_RESULT.out"; cp "$MCL_TEST_RESULT.out" ../ci-out/ 2>/dev/null || true
           cat "$MCL_TEST_RESULT"
           node -e "const r=require(process.env.MCL_TEST_RESULT); if(!r.reachedRunning||!r.hidden){console.error('game did not reach the running state or launcher did not close');process.exit(1)}"
       - name: Launch 1.21.1 with Sodium + Iris
+        timeout-minutes: 12
         if: always()
         env:
           MCL_TEST_OFFLINE: CiPlayer
@@ -59,15 +68,17 @@ jobs:
           MCL_TEST_RESULT: ${{ github.workspace }}/launch-1211.json
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
-          timeout 900 xvfb-run -a -s "-screen 0 1600x1000x24" npx electron . --no-sandbox || true
+          timeout -k 15 600 xvfb-run -a -s "-screen 0 1600x1000x24" npx electron . --no-sandbox > "$MCL_TEST_RESULT.out" 2>&1 || true
+          tail -50 "$MCL_TEST_RESULT.out"; cp "$MCL_TEST_RESULT.out" ../ci-out/ 2>/dev/null || true
           cat "$MCL_TEST_RESULT"
           node -e "const r=require(process.env.MCL_TEST_RESULT); if(!r.reachedRunning){process.exit(1)}"
       - name: UI screenshots
+        timeout-minutes: 6
         if: always()
         env:
           MCL_TEST_SHOTS: ${{ github.workspace }}/shots
           MCL_TEST_SHOT_INST: ci-1-21-1
-        run: timeout 300 xvfb-run -a -s "-screen 0 1600x1000x24" npx electron . --no-sandbox || true
+        run: timeout -k 15 240 xvfb-run -a -s "-screen 0 1600x1000x24" npx electron . --no-sandbox || true
       - name: Collect logs
         if: always()
         run: |
