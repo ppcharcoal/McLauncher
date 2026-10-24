@@ -3,8 +3,11 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
+// Linux: ~/.local/share/mclauncher   Windows: %APPDATA%\mclauncher
 const ROOT = process.env.MCL_DATA_DIR
-  || path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share'), 'mclauncher');
+  || (process.platform === 'win32'
+    ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'mclauncher')
+    : path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share'), 'mclauncher'));
 
 const P = {
   root: ROOT,

@@ -1,14 +1,18 @@
 'use strict';
-const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net, safeStorage } = require('electron');
+const { app, BrowserWindow, ipcMain, dialog, shell, protocol, net, safeStorage, nativeTheme } = require('electron');
 const fs = require('fs');
 const path = require('path');
 const { execFile } = require('child_process');
 const { pathToFileURL } = require('url');
 
-// Wayland / Hyprland: run natively when possible, with client-side decorations off (we draw our own).
-app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
-app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
+const IS_WIN = process.platform === 'win32';
+if (process.platform === 'linux') {
+  // Wayland / Hyprland: run natively when possible.
+  app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
+  app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
+}
 app.setName('mclauncher');
+if (IS_WIN) app.setAppUserModelId('io.github.ppcharcoal.mclauncher');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
@@ -25,8 +29,15 @@ const launch = require('./launch');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'mcl', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
-const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, accent: 'copper' };
-function getSettings() { return { ...DEFAULT_SETTINGS, ...readJson(P.settings, {}) }; }
+const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8' };
+function getSettings() {
+  const s = { ...DEFAULT_SETTINGS, ...readJson(P.settings, {}) };
+  if (!/^#[0-9a-f]{6}$/i.test(s.accent)) s.accent = DEFAULT_SETTINGS.accent;
+  if (!['system', 'dark', 'light'].includes(s.theme)) s.theme = 'system';
+  return s;
+}
+function applyNativeTheme(theme) { nativeTheme.themeSource = theme; }
+function windowBg() { return nativeTheme.shouldUseDarkColors ? '#181b22' : '#eceff3'; }
 
 let win = null;
 let pendingRoute = null;
@@ -35,13 +46,15 @@ function createWindow(route) {
   if (win && !win.isDestroyed()) { win.show(); win.focus(); if (route) send('navigate', route); return; }
   pendingRoute = route || null;
   const bounds = readJson(path.join(P.root, 'window.json'), { width: 1180, height: 760 });
+  const settings = getSettings();
+  applyNativeTheme(settings.theme);
   win = new BrowserWindow({
     width: bounds.width, height: bounds.height, minWidth: 900, minHeight: 600,
-    title: 'McLauncher', backgroundColor: '#181b22', show: false, frame: false,
+    title: 'McLauncher', backgroundColor: windowBg(), show: false, frame: false,
     icon: path.join(__dirname, '../../build/icon.png'),
     webPreferences: { preload: path.join(__dirname, '../preload.js'), sandbox: true, contextIsolation: true, spellcheck: false },
   });
-  win.loadFile(path.join(__dirname, '../renderer/index.html'));
+  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent } });
   win.once('ready-to-show', () => { win.show(); focusOnHyprland(); });
   win.on('close', () => { try { const [width, height] = win.getSize(); writeJson(path.join(P.root, 'window.json'), { width, height }); } catch {} });
   win.on('closed', () => { win = null; });
@@ -173,14 +186,20 @@ function modSource(src) { return src === 'curseforge' ? curseforge : modrinth; }
 
 const api = {
   // app / window
-  appInfo: () => ({ version: netUtil.VERSION, dataDir: P.root, hyprland: !!process.env.HYPRLAND_INSTANCE_SIGNATURE, wayland: process.env.XDG_SESSION_TYPE === 'wayland', gamemode: launch.hasCommand('gamemoderun') }),
+  appInfo: () => ({ version: netUtil.VERSION, platform: process.platform, dataDir: P.root, hyprland: !!process.env.HYPRLAND_INSTANCE_SIGNATURE, wayland: process.env.XDG_SESSION_TYPE === 'wayland', gamemode: !IS_WIN && launch.hasCommand('gamemoderun') }),
   startupRoute: () => { const r = pendingRoute; pendingRoute = null; return r; },
   winMinimize: () => win && win.minimize(),
   winMaximize: () => win && (win.isMaximized() ? win.unmaximize() : win.maximize()),
   winClose: () => win && win.close(),
   openExternal: (url) => { if (/^https?:\/\//.test(url)) shell.openExternal(url); },
   getSettings,
-  setSettings: (patch) => { const s = { ...getSettings(), ...patch }; writeJson(P.settings, s); curseforge.setKey(s.curseforgeKey); return s; },
+  setSettings: (patch) => {
+    const s = { ...getSettings(), ...patch };
+    writeJson(P.settings, s);
+    curseforge.setKey(s.curseforgeKey);
+    if ('theme' in patch) { applyNativeTheme(s.theme); if (win && !win.isDestroyed()) win.setBackgroundColor(windowBg()); }
+    return getSettings();
+  },
   openDataDir: () => shell.openPath(P.root),
 
   // accounts
@@ -344,6 +363,18 @@ async function runScreenshotTour(dir) {
     await wait(4500);
     fs.writeFileSync(path.join(dir, 'export.png'), (await win.webContents.capturePage()).toPNG());
   }
+  // light theme + another accent
+  await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); Theme.apply('light', '#5aa9f0'); location.hash = '#library'`);
+  await wait(2500);
+  fs.writeFileSync(path.join(dir, 'light-library.png'), (await win.webContents.capturePage()).toPNG());
+  if (first) {
+    await win.webContents.executeJavaScript(`location.hash = '#instance/${first.id}/mods'`);
+    await wait(2500);
+    fs.writeFileSync(path.join(dir, 'light-instance.png'), (await win.webContents.capturePage()).toPNG());
+  }
+  await win.webContents.executeJavaScript(`location.hash = '#settings'`);
+  await wait(2500);
+  fs.writeFileSync(path.join(dir, 'light-settings.png'), (await win.webContents.capturePage()).toPNG());
   fs.writeFileSync(path.join(dir, 'console-errors.txt'), errors.join('\n'));
   app.quit();
 }

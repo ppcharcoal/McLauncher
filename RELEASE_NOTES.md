@@ -1,12 +1,9 @@
-First release of McLauncher, a simple Minecraft launcher for Linux.
+McLauncher 0.2.0
 
-- Microsoft sign-in, multiple accounts
-- Instances with Fabric (pick the loader version) or vanilla, custom pictures
-- Discover mods, resource packs, shaders and modpacks from Modrinth and CurseForge, with Client / Server / Client & server / Library filters and automatic dependencies
-- Install `.mrpack` and CurseForge modpacks; import Prism/MultiMC zips
-- Export as `.mrpack` or a full zip backup
-- Built-in browser for mods, resource packs, shaders, worlds, screenshots and every file in the instance
-- The launcher closes while you play and reopens on the game log when Minecraft exits
-- Native Wayland, tested for Hyprland; uses Feral GameMode when installed
+- **Windows version**: installer (`mclauncher-0.2.0-setup.exe`) and portable exe, same look and features as on Linux.
+- **Appearance settings**: light, dark or system theme, plus an accent color (8 presets or any custom color).
+- **New app icon** and matching sidebar mark that follows your accent color.
+- Fixed: your player head now shows in the account button.
+- Fixed: a stray scrollbar next to the instance tabs.
 
-Install on Arch: see the README.
+Install: see the README for Arch Linux and Windows instructions.

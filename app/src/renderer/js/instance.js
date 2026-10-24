@@ -35,7 +35,7 @@ Pages.instance = async (main, route) => {
           h('span.badge', inst.loader === 'fabric' ? `Fabric ${inst.loaderVersion || 'latest'}` : 'Vanilla'),
           inst.source && inst.source.version ? h('span.badge', `Pack ${inst.source.version}`) : null,
           h('span', U.duration(inst.playTime)),
-          stateText ? h('span', { style: { color: 'var(--copper)', fontWeight: 600 } }, stateText) : null)),
+          stateText ? h('span', { style: { color: 'var(--accent)', fontWeight: 600 } }, stateText) : null)),
       h('div.actions',
         h('button.btn.icon', { title: 'Open game folder', 'aria-label': 'Open game folder', on: { click: () => U.call('openFolder', inst.id, '') } }, U.svg('folder')),
         h('button.btn.icon', { title: 'Export modpack', 'aria-label': 'Export modpack', on: { click: () => C.exportDialog(inst) } }, U.svg('upload')),

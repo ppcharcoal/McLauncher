@@ -130,16 +130,113 @@ jobs:
             app/dist/*.AppImage
             app/dist/*.tar.gz
 
+  test-windows:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    env:
+      MCL_DATA_DIR: ${{ github.workspace }}\ci-data
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Unit tests
+        run: npm test
+      - name: Online checks (Mojang, Fabric, Modrinth, CurseForge)
+        run: |
+          mkdir -p ../ci-out
+          set -o pipefail
+          timeout 1200 node test/online.js 2>&1 | tee ../ci-out/online.txt
+      - name: Software OpenGL for the runner (Mesa llvmpipe next to javaw.exe)
+        if: always()
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          url=$(gh api repos/pal1000/mesa-dist-win/releases/latest --jq '.assets[] | select(.name | test("release-msvc\\.7z$")) | .browser_download_url' | head -1)
+          echo "Mesa: $url"
+          curl -sL "$url" -o /tmp/mesa.7z && 7z x -y -o/tmp/mesa /tmp/mesa.7z > /dev/null
+          DATA=$(cygpath -u "$MCL_DATA_DIR")
+          for bin in "$DATA"/runtime/*/bin; do cp /tmp/mesa/x64/*.dll "$bin"/ && echo "copied into $bin"; done
+      - name: Launch 1.21.1 with Sodium + Iris
+        if: always()
+        timeout-minutes: 12
+        env:
+          MCL_TEST_OFFLINE: CiPlayer
+          MCL_TEST_LAUNCH: ci-1-21-1
+          MCL_TEST_EXIT_AFTER_READY: '1'
+          MCL_TEST_RESULT: ${{ github.workspace }}\launch-win-1211.json
+          GALLIUM_DRIVER: llvmpipe
+        run: |
+          timeout -k 15 600 npx electron . > ../ci-out/launch-win-1211.out 2>&1 || true
+          cat "$MCL_TEST_RESULT"
+          node -e "const r=require(process.env.MCL_TEST_RESULT); if(!r.started){console.error('game did not start');process.exit(1)} if(!r.reachedRunning||!r.hidden) console.log('::warning::game started but did not reach the title screen on the runner')"
+      - name: UI screenshots
+        if: always()
+        timeout-minutes: 6
+        env:
+          MCL_TEST_SHOTS: ${{ github.workspace }}\shots
+          MCL_TEST_SHOT_INST: ci-1-21-1
+        run: timeout -k 15 240 npx electron . || true
+      - name: Publish test output to the ci-logs-win branch
+        if: always() && github.event_name != 'pull_request'
+        run: |
+          mkdir -p ../ci-out
+          DATA=$(cygpath -u "$MCL_DATA_DIR")
+          cp -r "$DATA/logs" ../ci-out/launcher-logs 2>/dev/null || true
+          cp ../launch-*.json ../ci-out/ 2>/dev/null || true
+          cp -r ../shots ../ci-out/ 2>/dev/null || true
+          cd ../ci-out
+          git init -q -b ci-logs-win
+          git -c user.name=ci -c user.email=ci@localhost add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm "Windows CI output ${GITHUB_SHA}"
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:ci-logs-win
+
+  build-windows:
+    runs-on: windows-latest
+    timeout-minutes: 30
+    defaults:
+      run:
+        working-directory: app
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: app/package-lock.json
+      - run: npm ci
+      - name: Build Windows installer and portable exe
+        run: npx electron-builder --win nsis portable --x64 --publish never
+      - run: ls -la dist
+      - uses: actions/upload-artifact@v4
+        with:
+          name: windows-packages
+          path: |
+            app/dist/*-setup.exe
+            app/dist/*-portable.exe
+
   release:
     # Releases are cut from main: when app/package.json has a version without a release yet, publish it.
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [test, build]
+    needs: [test, build, test-windows, build-windows]
     runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v4
       - uses: actions/download-artifact@v4
         with:
           name: linux-packages
+          path: dist
+      - uses: actions/download-artifact@v4
+        with:
+          name: windows-packages
           path: dist
       - name: Publish release
         env:
@@ -150,3 +247,4 @@ jobs:
           if gh release view "$TAG" >/dev/null 2>&1; then echo "$TAG already released"; exit 0; fi
           gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "McLauncher $TAG" --notes-file RELEASE_NOTES.md
           git push -q --delete origin ci-logs || true
+          git push -q --delete origin ci-logs-win || true

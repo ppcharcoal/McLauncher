@@ -25,15 +25,17 @@ t('rules', () => {
   assert.ok(mojang.rulesAllow(undefined));
   assert.ok(!mojang.rulesAllow([{ action: 'allow', os: { name: 'osx' } }]));
   assert.ok(mojang.rulesAllow([{ action: 'allow' }, { action: 'disallow', os: { name: 'osx' } }]));
-  assert.ok(mojang.rulesAllow([{ action: 'allow', os: { name: 'linux' } }]));
+  assert.ok(mojang.rulesAllow([{ action: 'allow', os: { name: mojang.OS } }]));
   assert.ok(!mojang.rulesAllow([{ action: 'allow', features: { is_demo_user: true } }], {}));
   assert.ok(mojang.rulesAllow([{ action: 'allow', features: { has_custom_resolution: true } }], { has_custom_resolution: true }));
 });
 t('native classifiers on x64', () => {
   if (process.arch !== 'x64') return;
-  assert.ok(mojang.nativeClassifierOk('natives-linux'));
-  assert.ok(!mojang.nativeClassifierOk('natives-linux-arm64'));
-  assert.ok(!mojang.nativeClassifierOk('natives-windows'));
+  const me = mojang.OS, other = me === 'windows' ? 'linux' : 'windows';
+  assert.ok(mojang.nativeClassifierOk(`natives-${me}`));
+  assert.ok(!mojang.nativeClassifierOk(`natives-${me}-arm64`));
+  assert.ok(!mojang.nativeClassifierOk(`natives-${me}-x86`));
+  assert.ok(!mojang.nativeClassifierOk(`natives-${other}`));
   assert.ok(!mojang.nativeClassifierOk('natives-macos-arm64'));
 });
 t('merge + plan libraries (fabric wins duplicates, natives detected)', () => {
@@ -42,8 +44,8 @@ t('merge + plan libraries (fabric wins duplicates, natives detected)', () => {
     libraries: [
       { name: 'org.ow2.asm:asm:9.1', downloads: { artifact: { path: 'org/ow2/asm/asm/9.1/asm-9.1.jar', url: 'https://x/asm91', sha1: 'a', size: 1 } } },
       { name: 'org.lwjgl:lwjgl:3.3.3', downloads: { artifact: { path: 'l.jar', url: 'https://x/l', sha1: 'b', size: 1 } } },
-      { name: 'org.lwjgl:lwjgl:3.3.3:natives-linux', rules: [{ action: 'allow', os: { name: 'linux' } }], downloads: { artifact: { path: 'ln.jar', url: 'https://x/ln', sha1: 'c', size: 1 } } },
-      { name: 'org.lwjgl:lwjgl:3.3.3:natives-windows', rules: [{ action: 'allow', os: { name: 'windows' } }], downloads: { artifact: { path: 'lw.jar', url: 'https://x/lw', sha1: 'd', size: 1 } } },
+      { name: `org.lwjgl:lwjgl:3.3.3:natives-${mojang.OS}`, rules: [{ action: 'allow', os: { name: mojang.OS } }], downloads: { artifact: { path: 'ln.jar', url: 'https://x/ln', sha1: 'c', size: 1 } } },
+      { name: 'org.lwjgl:lwjgl:3.3.3:natives-macos', rules: [{ action: 'allow', os: { name: 'osx' } }], downloads: { artifact: { path: 'lw.jar', url: 'https://x/lw', sha1: 'd', size: 1 } } },
     ] };
   const fab = { id: 'fabric-loader-0.16.5-1.21.1', inheritsFrom: '1.21.1', mainClass: 'net.fabricmc.loader.impl.launch.knot.KnotClient',
     arguments: { game: [], jvm: ['-DFabricMcEmu= net.minecraft.client.main.Main '] },
@@ -63,7 +65,7 @@ t('merge + plan libraries (fabric wins duplicates, natives detected)', () => {
   }
 });
 t('argument expansion', () => {
-  const out = launch.expandArgs(['--a', '${x}', { rules: [{ action: 'allow', features: { has_custom_resolution: true } }], value: ['--w', '${w}'] }, { rules: [{ action: 'allow', os: { name: 'linux' } }], value: '-Dlinux=${x}' }], { x: 'X', w: '800' }, { has_custom_resolution: false });
+  const out = launch.expandArgs(['--a', '${x}', { rules: [{ action: 'allow', features: { has_custom_resolution: true } }], value: ['--w', '${w}'] }, { rules: [{ action: 'allow', os: { name: mojang.OS } }], value: '-Dlinux=${x}' }], { x: 'X', w: '800' }, { has_custom_resolution: false });
   assert.deepStrictEqual(out, ['--a', 'X', '-Dlinux=X']);
 });
 t('modrinth env facets + labels', () => {
@@ -74,9 +76,10 @@ t('modrinth env facets + labels', () => {
   assert.strictEqual(modrinth.envLabel('required', 'required'), 'both');
 });
 t('safeJoin blocks escapes', () => {
-  assert.throws(() => safeJoin('/tmp/a', '../b'));
-  assert.throws(() => safeJoin('/tmp/a', '/etc/passwd'));
-  assert.strictEqual(safeJoin('/tmp/a', 'mods/x.jar'), '/tmp/a/mods/x.jar');
+  const base = path.resolve(os.tmpdir(), 'a');
+  assert.throws(() => safeJoin(base, '../b'));
+  assert.throws(() => safeJoin(base, path.resolve('/etc/passwd')));
+  assert.strictEqual(safeJoin(base, 'mods/x.jar'), path.join(base, 'mods', 'x.jar'));
 });
 t('instances: create, content listing, toggle, export/import zip', () => {
   const inst = instances.create({ name: 'Test Pack', mcVersion: '1.21.1', loader: 'fabric', loaderVersion: '0.16.5' });

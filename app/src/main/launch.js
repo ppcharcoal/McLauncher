@@ -60,7 +60,7 @@ async function prepare(inst, account, settings, report) {
   if (!java) {
     const component = (version.javaVersion && version.javaVersion.component) || 'jre-legacy';
     java = await mojang.installJava(component, report);
-    if (!java) java = 'java';
+    if (!java) java = process.platform === 'win32' ? 'javaw' : 'java';
   }
 
   const gameDir = instances.gameDir(inst.id);
@@ -68,7 +68,8 @@ async function prepare(inst, account, settings, report) {
   report('Preparing natives');
   mojang.extractNatives(plan.nativeJars, nativesDir);
 
-  const cp = [...plan.classpath, clientJar].join(':');
+  const SEP = path.delimiter; // ':' on Linux, ';' on Windows
+  const cp = [...plan.classpath, clientJar].join(SEP);
   const vars = {
     auth_player_name: account.name,
     version_name: version.id,
@@ -88,7 +89,7 @@ async function prepare(inst, account, settings, report) {
     launcher_name: 'McLauncher',
     launcher_version: VERSION,
     classpath: cp,
-    classpath_separator: ':',
+    classpath_separator: SEP,
     library_directory: P.libraries,
     resolution_width: String(inst.width || 854),
     resolution_height: String(inst.height || 480),
@@ -116,6 +117,7 @@ async function prepare(inst, account, settings, report) {
 }
 
 function hasCommand(cmd) {
+  if (process.platform === 'win32') return false;
   try { execFileSync('sh', ['-c', `command -v ${cmd}`], { stdio: 'ignore' }); return true; } catch { return false; }
 }
 
@@ -126,7 +128,7 @@ function start(prep, settings, hooks) {
   for (const k of Object.keys(env)) if (k.startsWith('ELECTRON_') || k === 'CHROME_DESKTOP' || k === 'GDK_BACKEND') delete env[k];
   let cmd = prep.java, args = prep.args;
   if (settings.gamemode !== false && hasCommand('gamemoderun')) { args = [cmd, ...args]; cmd = 'gamemoderun'; }
-  const proc = spawn(cmd, args, { cwd: prep.cwd, env, detached: false, stdio: ['ignore', 'pipe', 'pipe'] });
+  const proc = spawn(cmd, args, { cwd: prep.cwd, env, detached: false, windowsHide: false, stdio: ['ignore', 'pipe', 'pipe'] });
   let buf = { out: '', err: '' };
   const feed = (key, chunk) => {
     buf[key] += chunk.toString('utf8');

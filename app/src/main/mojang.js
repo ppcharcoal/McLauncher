@@ -26,6 +26,8 @@ async function getManifest(force = false) {
 }
 
 // ---------- rules / maven helpers (pure, unit-tested) ----------
+const OS = process.platform === 'win32' ? 'windows' : process.platform === 'darwin' ? 'osx' : 'linux';
+const IS_WIN = OS === 'windows';
 function archOk(osRule) {
   if (!osRule.arch) return true;
   if (osRule.arch === 'x86') return process.arch === 'ia32';
@@ -38,7 +40,7 @@ function rulesAllow(rules, features = {}) {
   for (const r of rules) {
     let match = true;
     if (r.os) {
-      if (r.os.name && r.os.name !== 'linux') match = false;
+      if (r.os.name && r.os.name !== OS) match = false;
       if (!archOk(r.os)) match = false;
     }
     if (r.features) {
@@ -62,10 +64,11 @@ function libKey(name) {
 }
 function nativeClassifierOk(classifier) {
   if (!classifier || !classifier.startsWith('natives-')) return true;
-  if (!classifier.startsWith('natives-linux')) return false;
+  if (!classifier.startsWith(`natives-${OS === 'osx' ? 'macos' : OS}`)) return false;
   const isArm = /arm64|aarch/.test(classifier);
   const isArm32 = /arm32/.test(classifier);
-  const is32 = /x86$/.test(classifier) && !/x86_64/.test(classifier);
+  const is32 = (/x86$/.test(classifier) && !/x86_64/.test(classifier)) || /-32$/.test(classifier);
+  if (process.arch === 'ia32') return is32;
   if (process.arch === 'arm64') return isArm;
   if (process.arch === 'arm') return isArm32;
   return !isArm && !isArm32 && !is32;
@@ -87,7 +90,7 @@ function planLibraries(version) {
     const key = libKey(lib.name);
     // Legacy natives (pre-1.19): classifiers map
     if (lib.natives) {
-      const nk = lib.natives.linux;
+      const nk = lib.natives[OS];
       if (nk) {
         const cls = nk.replace('${arch}', process.arch === 'ia32' ? '32' : '64');
         const art = lib.downloads && lib.downloads.classifiers && lib.downloads.classifiers[cls];
@@ -194,7 +197,7 @@ function extractNatives(nativeJars, dir) {
     for (const e of zip.getEntries()) {
       if (e.isDirectory) continue;
       if (n.exclude.some(x => e.entryName.startsWith(x))) continue;
-      if (!/\.(so|so\.\d+)$/.test(e.entryName)) continue;
+      if (!(IS_WIN ? /\.dll$/i : /\.(so|so\.\d+)$/).test(e.entryName)) continue;
       fs.writeFileSync(path.join(dir, path.basename(e.entryName)), e.getData());
     }
   }
@@ -202,10 +205,14 @@ function extractNatives(nativeJars, dir) {
 
 // ---------- Java runtime ----------
 async function installJava(component, report) {
-  const platform = process.arch === 'ia32' ? 'linux-i386' : 'linux';
-  if (process.arch === 'arm64' || process.arch === 'arm') return null; // Mojang ships no Linux ARM runtime
+  let platform;
+  if (IS_WIN) platform = { x64: 'windows-x64', ia32: 'windows-x86', arm64: 'windows-arm64' }[process.arch];
+  else if (process.arch === 'arm64' || process.arch === 'arm') return null; // Mojang ships no Linux ARM runtime
+  else platform = process.arch === 'ia32' ? 'linux-i386' : 'linux';
+  if (!platform) return null;
   const dir = path.join(P.runtime, component);
-  const java = path.join(dir, 'bin', 'java');
+  // javaw on Windows: no console window next to the game
+  const java = path.join(dir, 'bin', IS_WIN ? 'javaw.exe' : 'java');
   const marker = path.join(dir, '.mcl-complete');
   if (fs.existsSync(java) && fs.existsSync(marker)) return java;
   report(`Downloading Java (${component})`);
@@ -219,10 +226,10 @@ async function installJava(component, report) {
   await pool(files, 8, async ([rel, f]) => {
     const dest = path.join(dir, rel);
     await download(f.downloads.raw.url, dest, { sha1: f.downloads.raw.sha1, size: f.downloads.raw.size });
-    if (f.executable) fs.chmodSync(dest, 0o755);
+    if (f.executable && !IS_WIN) fs.chmodSync(dest, 0o755);
   }, (d, t) => report(`Downloading Java (${component})`, d / t));
   for (const [rel, f] of entries) {
-    if (f.type !== 'link') continue;
+    if (f.type !== 'link' || IS_WIN) continue;
     const dest = path.join(dir, rel);
     try { fs.rmSync(dest, { force: true }); fs.symlinkSync(f.target, dest); } catch {}
   }
@@ -231,6 +238,7 @@ async function installJava(component, report) {
 }
 
 module.exports = {
+  OS,
   getManifest, getVanillaJson, mergeVersions, installClient, installAssets, extractNatives, installJava,
   planLibraries, rulesAllow, mavenPath, libKey, nativeClassifierOk,
 };

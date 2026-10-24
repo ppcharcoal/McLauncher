@@ -56,7 +56,6 @@ document.querySelectorAll('[data-win]').forEach(b => b.addEventListener('click',
   U.call({ min: 'winMinimize', max: 'winMaximize', close: 'winClose' }[b.dataset.win]);
 }));
 document.getElementById('account-chip').addEventListener('click', () => C.accountMenu());
-document.getElementById('brand-mark').replaceWith(Object.assign(U.blockArt('mclauncher-copper-brand'), { id: 'brand-mark' }));
 
 // events from the main process
 window.mcl.on('task', t => C.onTask(t));

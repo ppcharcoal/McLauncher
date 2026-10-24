@@ -29,7 +29,9 @@ function saveAccounts(data) {
 }
 function publicAccounts() {
   const d = loadAccounts();
-  return { active: d.active, list: d.list.map(a => ({ id: a.id, name: a.name, skin: a.skin, offline: !!a.offline })) };
+  // Mojang returns http:// texture URLs; the page only loads https images.
+  const https = (u) => (u ? u.replace(/^http:\/\//, 'https://') : null);
+  return { active: d.active, list: d.list.map(a => ({ id: a.id, name: a.name, skin: https(a.skin), offline: !!a.offline })) };
 }
 
 // ---------- Microsoft OAuth (in a small login window) ----------

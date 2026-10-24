@@ -1,7 +1,7 @@
 {
   "name": "mclauncher",
   "productName": "McLauncher",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "A simple, fast Minecraft launcher with Fabric, Modrinth and CurseForge support",
   "main": "src/main/main.js",
   "author": "ppcharcoal <pipesior@gmail.com>",
@@ -10,7 +10,8 @@
   "scripts": {
     "start": "electron .",
     "test": "node test/unit.js",
-    "dist": "electron-builder --linux pacman AppImage tar.gz --publish never"
+    "dist": "electron-builder --linux pacman AppImage tar.gz --publish never",
+    "dist:win": "electron-builder --win nsis portable --x64 --publish never"
   },
   "dependencies": {
     "adm-zip": "^0.5.16"
@@ -60,6 +61,36 @@
         "xdg-utils",
         "libnotify"
       ]
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        },
+        {
+          "target": "portable",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "build/icon.png",
+      "executableName": "McLauncher"
+    },
+    "nsis": {
+      "oneClick": false,
+      "perMachine": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "McLauncher",
+      "artifactName": "mclauncher-${version}-setup.${ext}"
+    },
+    "portable": {
+      "artifactName": "mclauncher-${version}-portable.${ext}"
     }
   }
 }
