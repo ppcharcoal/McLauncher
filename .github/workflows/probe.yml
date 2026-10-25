@@ -1,0 +1,43 @@
+name: Probe
+on:
+  push:
+    branches: [probe]
+permissions:
+  contents: write
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    steps:
+      - name: Collect GTNH + Prism meta samples
+        run: |
+          mkdir -p out && cd out
+          curl -sL http://downloads.gtnewhorizons.com/Multi_mc_downloads/ -o listing.html || true
+          grep -o 'href="[^"]*"' listing.html | sed 's/href="//;s/"$//' > files.txt || true
+          tail -40 files.txt
+          J17=$(grep -i '2\.8\.4' files.txt | grep -iE 'java_?17' | head -1)
+          J8=$(grep -i '2\.8\.4' files.txt | grep -viE 'java_?17' | head -1)
+          echo "J17=$J17 J8=$J8" | tee picked.txt
+          for f in "$J17" "$J8"; do
+            [ -z "$f" ] && continue
+            n=$(basename "$f")
+            curl -sL "http://downloads.gtnewhorizons.com/Multi_mc_downloads/$f" -o "/tmp/$n"
+            ls -la "/tmp/$n"
+            d="pack-$(echo $n | tr -c 'A-Za-z0-9._-' '_')"
+            mkdir -p "$d"
+            unzip -l "/tmp/$n" | grep -v '/mods/.\+\.jar$' | grep -v '/config/' | head -300 > "$d/listing.txt"
+            unzip -l "/tmp/$n" | tail -1 >> "$d/listing.txt"
+            unzip -o -q "/tmp/$n" '*mmc-pack.json' '*instance.cfg' '*patches/*' '*.png' -d "$d/x" || true
+            find "$d/x" -type f | head -50
+          done
+          for u in net.minecraft/1.7.10 net.minecraftforge/10.13.4.1614 org.lwjgl/2.9.4-nightly-20150209 org.lwjgl3/3.3.3 net.minecraft/1.20.1 net.fabricmc.fabric-loader/0.16.9 net.fabricmc.intermediary/1.20.1 net.minecraftforge/47.3.0 net.neoforged/21.1.209 org.lwjgl3/index; do
+            mkdir -p meta/$(dirname $u)
+            curl -sL "https://meta.prismlauncher.org/v1/$u.json" -o "meta/$u.json"
+          done
+          ls -R meta | head -40
+      - name: Publish
+        run: |
+          cd out
+          git init -q -b probe-out
+          git -c user.name=ci -c user.email=ci@localhost add -A
+          git -c user.name=ci -c user.email=ci@localhost commit -qm probe
+          git push -qf "https://x-access-token:${{ github.token }}@github.com/${GITHUB_REPOSITORY}.git" HEAD:probe-out
