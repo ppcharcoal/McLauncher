@@ -111,7 +111,8 @@ jobs:
           ls -la "$XDG_RUNTIME_DIR"
           # Electron itself stays on Xvfb; only the game gets the Wayland socket.
           WAYLAND_DISPLAY=mcl-wl timeout -k 15 600 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox --ozone-platform=x11 > ../ci-out/launch-wayland.out 2>&1 || true
-          node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, started:r.started, sawWindow:r.sawWindow, glfwError:r.glfwError, error:r.error}); console.log(r.tail.slice(-25).join('\n')); if(r.glfwError && /65548/.test(r.glfwError)) process.exit(1); if(!r.sawWindow) console.log('::warning::Minecraft did not open a window on headless weston (EGL on the runner); the icon error did not occur')"
+          grep -nE "GLFW|EGL|Wayland|wayland|Failed to create window|glfw|Exception" "$MCL_DATA_DIR"/logs/ci-wayland_*.log | head -40 || true
+          node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, started:r.started, sawWindow:r.sawWindow, glfwError:r.glfwError, error:r.error}); if(r.glfwError && /65548/.test(r.glfwError)) process.exit(1); if(!r.sawWindow) console.log('::warning::Minecraft did not open a window on headless weston; the icon error did not occur')"
       - name: GT New Horizons 2.8.4 (Java 17+ Prism pack) import and launch
         if: always()
         timeout-minutes: 30
@@ -316,7 +317,6 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           ls -la dist
-          git push -q --delete origin ci-logs ci-logs-win || true
           TAG="v$(node -p "require('./app/package.json').version")"
           if gh release view "$TAG" >/dev/null 2>&1; then echo "$TAG already released"; exit 0; fi
           gh release create "$TAG" dist/* --target "$GITHUB_SHA" --title "McLauncher $TAG" --notes-file RELEASE_NOTES.md
