@@ -1,0 +1,2 @@
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/libraries/
+  7826269  1980-01-01 00:00   GT New Horizons 2.8.4/libraries/lwjgl3ify-2.1.16-forgePatches.jar

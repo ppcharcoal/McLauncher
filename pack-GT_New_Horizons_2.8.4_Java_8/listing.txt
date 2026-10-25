@@ -1,0 +1,51 @@
+Archive:  /tmp/GT_New_Horizons_2.8.4_Java_8.zip
+  Length      Date    Time    Name
+---------  ---------- -----   ----
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/journeymap/
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/journeymap/config/
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/
+    67009  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Legacy Ore Textures.zip
+    17682  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Hidden Galacticraft Thermal Padding GT V1.0.0.zip
+    57745  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Round Large Turbine Overlay.zip
+ 12477601  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Realistic Sky GT New Horizons.zip
+    20762  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Glow Lines Only Galacticraft Thermal Padding GT V1.0.0.zip
+    58003  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Legacy IronChest Textures.zip
+   103956  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/resourcepacks/Fast Leaves Fix.zip
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/
+     1391  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/aurora.cfg
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/server/
+      974  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/server/ranks.txt
+       71  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/server/players.txt
+    12321  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/serverutilities.cfg
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/client/
+     1302  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/client/serverutilities.cfg
+      320  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/serverutilities/client/sidebar_buttons.json
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/config/
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/
+        0  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/
+  3113526  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/StargateAtlantisTheme.ogg
+    23919  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/alarm-SGAoffworld.ogg
+    20290  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/klaxon2.ogg
+    12241  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/alarm-SG1evac.ogg
+    16933  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/alarm-SG1.ogg
+    48456  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/klaxon1.ogg
+    17175  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/mods/OpenSecurity/sounds/alarms/alarm-SGA.ogg
+     3267  2025-12-23 13:34   GT New Horizons 2.8.4/.minecraft/changelog from 2.8.3 to 2.8.4.md
+  4031516  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_de_DE.lang
+  4245655  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_es_ES.lang
+  4239042  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_fr_FR.lang
+  4396660  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_ja_JP.lang
+  4270843  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_ko_KR.lang
+  4097201  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_pl_PL.lang
+  4224616  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_pt_BR.lang
+  5348011  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_ru_RU.lang
+  4111193  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_tr_TR.lang
+  3961725  1980-01-01 00:00   GT New Horizons 2.8.4/.minecraft/GregTech_zh_CN.lang
+      410  2025-12-23 13:35   GT New Horizons 2.8.4/mmc-pack.json
+      278  2025-12-23 13:35   GT New Horizons 2.8.4/instance.cfg
+    61043  1980-01-01 00:00   GT New Horizons 2.8.4/gtnh_icon.png
+---------                     -------
+749508238                     12230 files
+749508238                     12230 files
