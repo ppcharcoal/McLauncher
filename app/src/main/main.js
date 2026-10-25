@@ -11,8 +11,10 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
   app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
 }
+// The keyring entry that protects saved accounts is named after the app at startup. Keep the
+// pre-rename name until that is set up, then switch to "cairn" (window class / Wayland app id).
 app.setName('mclauncher');
-if (IS_WIN) app.setAppUserModelId('io.github.ppcharcoal.mclauncher');
+if (IS_WIN) app.setAppUserModelId('io.github.ppcharcoal.mclauncher'); // kept from before the rename (installer upgrade path)
 
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
@@ -32,7 +34,7 @@ const launch = require('./launch');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'mcl', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
-const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', font: 'onest', fontCustom: '', scale: 1, nativeWayland: false, nvidiaThreadedFix: true };
+const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', scale: 1, nativeWayland: 'auto', nvidiaThreadedFix: true, style: 'minimal' };
 function getSettings() {
   const s = { ...DEFAULT_SETTINGS, ...readJson(P.settings, {}) };
   if (!/^#[0-9a-f]{6}$/i.test(s.accent)) s.accent = DEFAULT_SETTINGS.accent;
@@ -40,7 +42,12 @@ function getSettings() {
   return s;
 }
 function applyNativeTheme(theme) { nativeTheme.themeSource = theme; }
-function windowBg() { return nativeTheme.shouldUseDarkColors ? '#181b22' : '#eceff3'; }
+function windowBg() {
+  const st = getSettings().style;
+  if (st === 'darkmatter') return '#05060a';
+  if (st === 'aero') return '#bfe6fa';
+  return nativeTheme.shouldUseDarkColors ? '#181b22' : '#eceff3';
+}
 
 let win = null;
 let pendingRoute = null;
@@ -50,14 +57,14 @@ function createWindow(route) {
   pendingRoute = route || null;
   const bounds = readJson(path.join(P.root, 'window.json'), { width: 1180, height: 760 });
   const settings = getSettings();
-  applyNativeTheme(settings.theme);
+  applyNativeTheme({ aero: 'light', darkmatter: 'dark' }[settings.style] || settings.theme);
   win = new BrowserWindow({
     width: bounds.width, height: bounds.height, minWidth: 900, minHeight: 600,
-    title: 'McLauncher', backgroundColor: windowBg(), show: false, frame: false,
+    title: 'Cairn', backgroundColor: windowBg(), show: false, frame: false,
     icon: path.join(__dirname, '../../build/icon.png'),
     webPreferences: { preload: path.join(__dirname, '../preload.js'), sandbox: true, contextIsolation: true, spellcheck: false },
   });
-  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent, font: settings.font, fontCustom: settings.fontCustom || '', scale: String(settings.scale || 1) } });
+  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent, style: settings.style || 'minimal', scale: String(settings.scale || 1) } });
   win.once('ready-to-show', () => { win.show(); focusOnHyprland(); });
   win.on('close', () => { try { const [width, height] = win.getSize(); writeJson(path.join(P.root, 'window.json'), { width, height }); } catch {} });
   win.on('closed', () => { win = null; });
@@ -121,14 +128,14 @@ async function launchInstance(instId, opts = {}) {
       return launch.prepare(inst, account, settings, report);
     });
   } catch (e) {
-    s.state = 'failed'; s.code = -1; s.lines.push(`[McLauncher] ${e.message}`);
+    s.state = 'failed'; s.code = -1; s.lines.push(`[Cairn] ${e.message}`);
     send('session', sessionInfo(s));
     throw e;
   }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   s.logFile = path.join(P.logs, `${instId}_${stamp}.log`);
   const stream = fs.createWriteStream(s.logFile);
-  stream.write(`# McLauncher ${netUtil.VERSION} — ${inst.name} (Minecraft ${inst.mcVersion}${inst.loader === 'fabric' ? ', Fabric ' + inst.loaderVersion : ''})\n`);
+  stream.write(`# Cairn ${netUtil.VERSION} — ${inst.name} (Minecraft ${inst.mcVersion}${inst.loader === 'fabric' ? ', Fabric ' + inst.loaderVersion : ''})\n`);
   stream.write(`# Java: ${prep.java}\n`);
   s.state = 'starting';
   instances.update(instId, { lastPlayed: Date.now() });
@@ -203,7 +210,11 @@ const api = {
     const s = { ...getSettings(), ...patch };
     writeJson(P.settings, s);
     curseforge.setKey(s.curseforgeKey);
-    if ('theme' in patch) { applyNativeTheme(s.theme); if (win && !win.isDestroyed()) win.setBackgroundColor(windowBg()); }
+    if ('theme' in patch || 'style' in patch) {
+      const forced = { aero: 'light', darkmatter: 'dark' }[s.style];
+      applyNativeTheme(forced || s.theme);
+      if (win && !win.isDestroyed()) win.setBackgroundColor(windowBg());
+    }
     return getSettings();
   },
   openDataDir: () => shell.openPath(P.root),
@@ -364,6 +375,7 @@ const api = {
   },
   prismComponents: (id) => require('./prism').components(id),
   waylandInfo: () => ({ linux: process.platform === 'linux', wayland: !!process.env.WAYLAND_DISPLAY, glfw: launch.systemGlfw() }),
+
   exportCandidates: (id) => packs.exportCandidates(id),
   exportPack: async (id, { format, include, name, version, summary }) => {
     const inst = instances.get(id);
@@ -450,13 +462,21 @@ async function runScreenshotTour(dir) {
     fs.writeFileSync(path.join(dir, 'import-dialog.png'), (await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); location.hash = '#settings'`);
     await wait(2500);
-    await win.webContents.executeJavaScript(`document.querySelector('.font-cards') && document.querySelector('.font-cards').scrollIntoView({ block: 'center' })`);
+    await win.webContents.executeJavaScript(`document.querySelector('.style-cards') && document.querySelector('.style-cards').scrollIntoView({ block: 'center' })`);
     await wait(800);
-    fs.writeFileSync(path.join(dir, 'settings-fonts.png'), (await win.webContents.capturePage()).toPNG());
-    await win.webContents.executeJavaScript(`Theme.applyFont('nunito'); location.hash = '#instance/${first.id}/mods'`);
-    await wait(2500);
-    fs.writeFileSync(path.join(dir, 'font-nunito.png'), (await win.webContents.capturePage()).toPNG());
-    await win.webContents.executeJavaScript(`Theme.applyFont('onest')`);
+    fs.writeFileSync(path.join(dir, 'settings-appearance.png'), (await win.webContents.capturePage()).toPNG());
+    for (const st of ['glass', 'aero', 'darkmatter']) {
+      await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); Theme.applyStyle('${st}'); location.hash = '#library'; 0`);
+      await wait(2200);
+      fs.writeFileSync(path.join(dir, `style-${st}-library.png`), (await win.webContents.capturePage()).toPNG());
+      await win.webContents.executeJavaScript(`location.hash = '#instance/${first.id}/mods'; 0`);
+      await wait(2200);
+      fs.writeFileSync(path.join(dir, `style-${st}-instance.png`), (await win.webContents.capturePage()).toPNG());
+      await win.webContents.executeJavaScript(`Pages.newInstanceFlow(); 0`);
+      await wait(1500);
+      fs.writeFileSync(path.join(dir, `style-${st}-dialog.png`), (await win.webContents.capturePage()).toPNG());
+    }
+    await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); Theme.applyStyle('minimal'); 0`);
   }
   const second = process.env.MCL_TEST_SHOT_INST2 && instances.list().find(i => i.id === process.env.MCL_TEST_SHOT_INST2);
   if (second) {
@@ -493,6 +513,7 @@ app.on('window-all-closed', () => {
 });
 
 app.whenReady().then(() => {
+  app.setName('cairn');
   netUtil.useElectronNet(net);
   auth.init({ safeStorage });
   curseforge.setKey(getSettings().curseforgeKey);

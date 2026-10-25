@@ -1,12 +1,21 @@
 'use strict';
-/* Applies light/dark theme and accent color. Loaded in <head> so the first paint is already themed. */
+/* Applies the style (look + font), light/dark mode and accent color. Loaded in <head> so the first paint is already themed. */
 (function () {
   const ACCENTS = [
     ['Copper', '#5cc2a8'], ['Sky', '#5aa9f0'], ['Amethyst', '#a98ae6'], ['Grass', '#7cc25c'],
     ['Gold', '#e0b43c'], ['Redstone', '#e5584d'], ['Rose', '#e77fb3'], ['Slate', '#8c9bb0'],
   ];
   const media = window.matchMedia('(prefers-color-scheme: dark)');
-  let current = { theme: 'system', accent: ACCENTS[0][1] };
+  let current = { theme: 'system', accent: ACCENTS[0][1], style: 'minimal' };
+
+  // Styles change the whole look and the typeface. Some have their own light/dark character.
+  const STYLES = [
+    { id: 'minimal', name: 'Minimal', desc: 'Calm, flat and quiet.', font: ['onest', 'Onest'], mode: null },
+    { id: 'glass', name: 'Modern Glass', desc: 'Frosted panels over a soft glow.', font: ['inter', 'Inter'], mode: null },
+    { id: 'aero', name: 'Frutiger Aero', desc: 'Glossy, sky-blue and bubbly.', font: ['nunito', 'Nunito'], mode: 'light' },
+    { id: 'darkmatter', name: 'Dark Matter', desc: 'Deep space with a neon edge.', font: ['space-grotesk', 'Space Grotesk'], mode: 'dark' },
+  ];
+  const styleOf = (id) => STYLES.find(x => x.id === id) || STYLES[0];
 
   function ink(hex) {
     const n = parseInt(hex.slice(1), 16);
@@ -14,7 +23,11 @@
     const L = 0.2126 * ch[0] + 0.7152 * ch[1] + 0.0722 * ch[2];
     return L > 0.36 ? '#10151b' : '#ffffff';
   }
-  function resolved() { return current.theme === 'system' ? (media.matches ? 'dark' : 'light') : current.theme; }
+  function resolved() {
+    const forced = styleOf(current.style).mode;
+    if (forced) return forced;
+    return current.theme === 'system' ? (media.matches ? 'dark' : 'light') : current.theme;
+  }
   function apply(theme, accent) {
     if (theme) current.theme = theme;
     if (accent && /^#[0-9a-f]{6}$/i.test(accent)) current.accent = accent;
@@ -26,10 +39,6 @@
   media.addEventListener('change', () => { if (current.theme === 'system') apply(); });
 
   // ---- fonts ----
-  const FONTS = [
-    ['onest', 'Onest', 'Onest'], ['inter', 'Inter', 'Inter'], ['figtree', 'Figtree', 'Figtree'], ['nunito', 'Nunito', 'Nunito'],
-    ['system', 'System font', null], ['custom', 'Custom…', null],
-  ];
   const FALLBACK = "'Noto Sans', 'DejaVu Sans', 'Segoe UI', Cantarell, Arial, Helvetica, sans-serif";
   const RANGES = {
     latin: 'U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD',
@@ -52,14 +61,13 @@
     }));
     return loaded[id];
   }
-  function applyFont(id = 'onest', custom = '') {
-    const f = FONTS.find(x => x[0] === id) || FONTS[0];
-    current.font = f[0]; current.fontCustom = custom;
-    let stack;
-    if (f[0] === 'system') stack = `system-ui, ${FALLBACK}`;
-    else if (f[0] === 'custom') stack = custom ? `"${custom.replace(/["\\]/g, '')}", ${FALLBACK}` : `system-ui, ${FALLBACK}`;
-    else { loadBundled(f[0], f[2]); stack = `'${f[2]}', ${FALLBACK}`; }
-    document.documentElement.style.setProperty('--font', stack);
+  function applyStyle(id) {
+    const st = styleOf(id);
+    current.style = st.id;
+    document.documentElement.dataset.style = st.id;
+    loadBundled(st.font[0], st.font[1]);
+    document.documentElement.style.setProperty('--font', `'${st.font[1]}', ${FALLBACK}`);
+    apply();
   }
   function applyScale(scale) {
     const v = Number(scale) || 1;
@@ -69,8 +77,8 @@
 
   const q = new URLSearchParams(location.search);
   apply(q.get('theme') || 'system', q.get('accent') || ACCENTS[0][1]);
-  applyFont(q.get('font') || 'onest', q.get('fontCustom') || '');
+  applyStyle(q.get('style') || 'minimal');
   applyScale(q.get('scale') || 1);
-  const loadFont = (id) => { const f = FONTS.find(x => x[0] === id); return f && f[2] ? loadBundled(f[0], f[2]) : Promise.resolve(); };
-  window.Theme = { apply, applyFont, applyScale, loadFont, ACCENTS, FONTS, get: () => ({ ...current, resolved: resolved() }) };
+  const loadFont = (id) => { const st = styleOf(id); return loadBundled(st.font[0], st.font[1]); };
+  window.Theme = { apply, applyStyle, applyScale, loadFont, ACCENTS, STYLES, get: () => ({ ...current, resolved: resolved(), forcedMode: styleOf(current.style).mode }) };
 })();

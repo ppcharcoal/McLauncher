@@ -1,8 +1,8 @@
 {
-  "name": "mclauncher",
-  "productName": "McLauncher",
-  "version": "0.5.0",
-  "description": "A simple, fast Minecraft launcher with Fabric, Forge, NeoForge, Modrinth and CurseForge support",
+  "name": "cairn",
+  "productName": "Cairn",
+  "version": "0.6.0",
+  "description": "Cairn: a simple, fast Minecraft launcher with Fabric, Forge, NeoForge, Modrinth and CurseForge",
   "main": "src/main/main.js",
   "author": "ppcharcoal <pipesior@gmail.com>",
   "license": "MIT",
@@ -22,9 +22,9 @@
   },
   "build": {
     "appId": "io.github.ppcharcoal.mclauncher",
-    "productName": "McLauncher",
-    "executableName": "mclauncher",
-    "artifactName": "mclauncher-${version}-${arch}.${ext}",
+    "productName": "Cairn",
+    "executableName": "cairn",
+    "artifactName": "cairn-${version}-${arch}.${ext}",
     "files": [
       "src/**/*",
       "node_modules/**/*",
@@ -44,10 +44,10 @@
       ],
       "category": "Game",
       "icon": "build/icons",
-      "synopsis": "Simple Minecraft launcher with Fabric and mod browser",
+      "synopsis": "Simple Minecraft launcher with Fabric, Forge, NeoForge and mod browser",
       "desktop": {
         "entry": {
-          "StartupWMClass": "mclauncher",
+          "StartupWMClass": "cairn",
           "Keywords": "minecraft;fabric;forge;neoforge;mods;modpacks;",
           "Comment": "Minecraft launcher with Fabric, Forge, NeoForge, Modrinth and CurseForge"
         }
@@ -72,6 +72,14 @@
         "xdg-utils",
         "libnotify",
         "xorg-xrandr"
+      ],
+      "fpm": [
+        "--replaces",
+        "mclauncher",
+        "--conflicts",
+        "mclauncher",
+        "--provides",
+        "mclauncher"
       ]
     },
     "win": {
@@ -90,7 +98,7 @@
         }
       ],
       "icon": "build/icon.png",
-      "executableName": "McLauncher"
+      "executableName": "Cairn"
     },
     "nsis": {
       "oneClick": false,
@@ -98,11 +106,11 @@
       "allowToChangeInstallationDirectory": true,
       "createDesktopShortcut": true,
       "createStartMenuShortcut": true,
-      "shortcutName": "McLauncher",
-      "artifactName": "mclauncher-${version}-setup.${ext}"
+      "shortcutName": "Cairn",
+      "artifactName": "cairn-${version}-setup.${ext}"
     },
     "portable": {
-      "artifactName": "mclauncher-${version}-portable.${ext}"
+      "artifactName": "cairn-${version}-portable.${ext}"
     }
   }
 }

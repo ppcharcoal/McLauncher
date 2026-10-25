@@ -251,7 +251,7 @@ async function readMrpackIndex(zip) {
 async function importMrpack(zip, { name, iconUrl, source, report = () => {} } = {}) {
   const index = await readMrpackIndex(zip);
   const deps = index.dependencies || {};
-  if (deps['quilt-loader']) throw new Error('This modpack needs Quilt. McLauncher supports Fabric, Forge, NeoForge and vanilla.');
+  if (deps['quilt-loader']) throw new Error('This modpack needs Quilt. Cairn supports Fabric, Forge, NeoForge and vanilla.');
   const forge = require('./forge');
   let loader = 'vanilla', loaderVersion = null;
   if (deps['fabric-loader']) { loader = 'fabric'; loaderVersion = deps['fabric-loader']; }

@@ -1,5 +1,5 @@
 /*
- * McLauncher GLFW Wayland shim.
+ * Cairn GLFW Wayland shim.
  *
  * Minecraft (up to ~1.21) treats every GLFW error during window creation as fatal. On Wayland,
  * GLFW reports "The platform does not support setting the window icon" (and window position),

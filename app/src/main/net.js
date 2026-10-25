@@ -7,7 +7,7 @@ const { pipeline } = require('stream/promises');
 const { ensure } = require('./paths');
 
 const VERSION = require('../../package.json').version;
-const USER_AGENT = `ppcharcoal/McLauncher/${VERSION} (github.com/ppcharcoal/McLauncher)`;
+const USER_AGENT = `ppcharcoal/Cairn/${VERSION} (github.com/ppcharcoal/McLauncher)`;
 
 let electronNet = null;
 function useElectronNet(net) { electronNet = net; }

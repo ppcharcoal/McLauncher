@@ -3,11 +3,19 @@ const path = require('path');
 const os = require('os');
 const fs = require('fs');
 
-// Linux: ~/.local/share/mclauncher   Windows: %APPDATA%\mclauncher
-const ROOT = process.env.MCL_DATA_DIR
-  || (process.platform === 'win32'
-    ? path.join(process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'), 'mclauncher')
-    : path.join(process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share'), 'mclauncher'));
+// Linux: ~/.local/share/cairn   Windows: %APPDATA%\cairn
+// Installs from before the rename (McLauncher) keep their existing folder, so nothing is lost.
+const BASE = process.platform === 'win32'
+  ? (process.env.APPDATA || path.join(os.homedir(), 'AppData', 'Roaming'))
+  : (process.env.XDG_DATA_HOME || path.join(os.homedir(), '.local', 'share'));
+function pickRoot() {
+  if (process.env.MCL_DATA_DIR) return process.env.MCL_DATA_DIR;
+  const now = path.join(BASE, 'cairn');
+  const old = path.join(BASE, 'mclauncher');
+  if (!fs.existsSync(now) && fs.existsSync(path.join(old, 'instances'))) return old;
+  return now;
+}
+const ROOT = pickRoot();
 
 const P = {
   root: ROOT,

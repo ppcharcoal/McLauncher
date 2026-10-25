@@ -26,7 +26,7 @@ function rebase(zip, root) {
 
 /**
  * Import any supported archive: Modrinth .mrpack, CurseForge zip (Fabric/Forge/NeoForge), Prism/MultiMC
- * export, McLauncher export. Anything else that holds game files (mods/, config/ …) returns
+ * export, Cairn export. Anything else that holds game files (mods/, config/ …) returns
  * { needsSetup } so the player can pick the version and loader.
  */
 async function importFile(file, report = () => {}) {
@@ -41,7 +41,7 @@ async function importFile(file, report = () => {}) {
   if ((r = findRoot(names, 'manifest.json', isCf)) != null) return curseforge.importZip(rebase(zip, r), { report });
   const game = guessGameRoot(names);
   if (game != null) return { needsSetup: true, source: { type: 'zip', path: file, root: game }, guess: guessFromZip(zip, game, path.basename(file).replace(/\.(zip|mrpack)$/i, '')) };
-  throw new Error('This file has no modpack or game files McLauncher recognizes (.mrpack, CurseForge, Prism/MultiMC, or a zip with mods/config folders).');
+  throw new Error('This file has no modpack or game files Cairn recognizes (.mrpack, CurseForge, Prism/MultiMC, or a zip with mods/config folders).');
 }
 
 const GAME_DIRS = ['mods', 'config', 'resourcepacks', 'shaderpacks', 'saves', 'options.txt'];
@@ -113,7 +113,7 @@ async function importFolder(dir, report = () => {}) {
       return { needsSetup: true, source: { type: 'dir', path: base }, guess: guessFromJars(jars, path.basename(dir)) };
     }
   }
-  throw new Error('This folder has no modpack or game files McLauncher recognizes.');
+  throw new Error('This folder has no modpack or game files Cairn recognizes.');
 }
 
 /** Copy the game files of an unrecognized zip or folder into an instance the player just created. */
@@ -181,7 +181,7 @@ async function importPrism(zip, root) {
   const comp = (uid) => comps.find(c => c.uid === uid);
   const mc = comp('net.minecraft');
   if (!mc) throw new Error('The Prism instance has no Minecraft version.');
-  if (comp('org.quiltmc.quilt-loader')) throw new Error('This Prism instance uses Quilt. McLauncher supports Fabric, Forge, NeoForge and vanilla.');
+  if (comp('org.quiltmc.quilt-loader')) throw new Error('This Prism instance uses Quilt. Cairn supports Fabric, Forge, NeoForge and vanilla.');
   const mcVersion = mc.version || mc.cachedVersion;
   const entries = zip.getEntries().filter(e => !e.isDirectory && e.entryName.startsWith(root));
   const rel = (e) => e.entryName.slice(root.length);
@@ -238,7 +238,7 @@ async function importPrism(zip, root) {
   return instances.get(inst.id);
 }
 
-/** Plain zip export of the instance (re-importable by McLauncher). */
+/** Plain zip export of the instance (re-importable by Cairn). */
 function exportZip(instId, outFile, { include }) {
   const inst = instances.get(instId);
   const dir = instances.dirOf(instId);

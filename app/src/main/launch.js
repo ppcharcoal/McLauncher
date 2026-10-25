@@ -104,9 +104,9 @@ async function prepare(inst, account, settings, report) {
     auth_xuid: account.xuid || '',
     user_type: account.offline ? 'legacy' : 'msa',
     user_properties: '{}',
-    version_type: 'McLauncher',
+    version_type: 'Cairn',
     natives_directory: nativesDir,
-    launcher_name: 'McLauncher',
+    launcher_name: 'Cairn',
     launcher_version: VERSION,
     classpath: cp,
     classpath_separator: SEP,
@@ -147,17 +147,27 @@ async function prepare(inst, account, settings, report) {
  * Native Wayland: point LWJGL at our shim, which loads the system GLFW but skips the window-icon and
  * window-position calls that Wayland can't do (old Minecraft treats those errors as fatal).
  */
+function waylandMode(inst, settings) {
+  const v = inst.nativeWayland ?? settings.nativeWayland ?? 'auto';
+  return v === true ? 'on' : v === false ? 'off' : v;
+}
 function waylandGlfwArg(inst, settings, libraries) {
-  const want = process.platform === 'linux' && (inst.nativeWayland ?? settings.nativeWayland) && !!process.env.WAYLAND_DISPLAY;
+  if (process.platform !== 'linux' || !process.env.WAYLAND_DISPLAY) return null;
+  const mode = waylandMode(inst, settings);
   const usesGlfw = (libraries || []).some(l => /^org\.lwjgl3?:lwjgl-glfw:3|^org\.lwjgl:lwjgl-glfw/.test(l.name));
-  if (!want || !usesGlfw) return null;
+  if (mode === 'off' || !usesGlfw) return null;
   const sys = systemGlfw();
-  if (!sys) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or turn Native Wayland off in the instance settings.');
   // LWJGL 3.3+ calls GLFW 3.4 functions; an older system GLFW fails with "A required function is missing".
   const lwjgl = (libraries || []).map(l => /^org\.lwjgl3?:lwjgl:(\d+)\.(\d+)/.exec(l.name)).find(Boolean);
   const needs34 = lwjgl && (Number(lwjgl[1]) > 3 || (Number(lwjgl[1]) === 3 && Number(lwjgl[2]) >= 3));
-  if (needs34 && !glfwHas(sys, 'glfwInitAllocator')) throw new Error('Native Wayland needs GLFW 3.4 or newer for this Minecraft version, but the system GLFW is older. Update the glfw package or turn Native Wayland off.');
-  return `-Dorg.lwjgl.glfw.libname=${glfwShim() || systemGlfw()}`;
+  const ok = !!sys && (!needs34 || glfwHas(sys, 'glfwInitAllocator'));
+  if (!ok) {
+    // Automatic: quietly use XWayland. Explicitly on: say what is missing.
+    if (mode === 'auto') return null;
+    if (!sys) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or set Native Wayland to Off in the instance settings.');
+    throw new Error('Native Wayland needs GLFW 3.4 or newer for this Minecraft version, but the system GLFW is older. Update the glfw package or set Native Wayland to Off.');
+  }
+  return `-Dorg.lwjgl.glfw.libname=${glfwShim() || sys}`;
 }
 function glfwShim() {
   const name = 'libmcl-glfw-wayland.so';
@@ -213,7 +223,7 @@ function start(prep, settings, hooks) {
   };
   proc.stdout.on('data', c => feed('out', c));
   proc.stderr.on('data', c => feed('err', c));
-  proc.on('error', e => { hooks.onLine(`[McLauncher] Could not start Java: ${e.message}`, true); hooks.onExit(-1); });
+  proc.on('error', e => { hooks.onLine(`[Cairn] Could not start Java: ${e.message}`, true); hooks.onExit(-1); });
   proc.on('exit', (code, signal) => {
     if (buf.out) hooks.onLine(buf.out, false);
     if (buf.err) hooks.onLine(buf.err, true);
@@ -222,4 +232,4 @@ function start(prep, settings, hooks) {
   return proc;
 }
 
-module.exports = { systemGlfw, glfwShim, waylandGlfwArg, parseEnv, PERF_FLAGS, prepare, start, resolveVersion, expandArgs, substitute, hasCommand };
+module.exports = { waylandMode, systemGlfw, glfwShim, waylandGlfwArg, parseEnv, PERF_FLAGS, prepare, start, resolveVersion, expandArgs, substitute, hasCommand };

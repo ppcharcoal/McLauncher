@@ -1,11 +1,7 @@
-McLauncher 0.5.0
+Cairn 0.6.0 (formerly McLauncher)
 
-- **Pick the Java for each instance**: Settings → Java lets you choose Automatic, a Java version McLauncher downloads for you (8, 17, 21, 25…), any Java found on your computer, or a custom path (with a Test button). Instances also get their own environment variables.
-- **Prism Launcher / MultiMC packs with custom components**: packs such as GT New Horizons (Java 17+) that replace LWJGL and the launch setup with their own patches now import and run as the pack intends. Their component list shows in the instance settings, and a compatible Java (17–25 for GTNH) is picked automatically.
-- **Prism pictures**: imported Prism/MultiMC packs keep their icon (e.g. GTNH).
-- **Native Wayland works on older Minecraft**: McLauncher now includes a small GLFW shim, so 1.20.x no longer fails with "GLFW error 65548: The platform does not support setting the window icon".
-- **NVIDIA crash fix (Linux)**: NVIDIA threaded optimizations are turned off for Minecraft (as Sodium recommends). This addresses the SIGSEGV in libX11 `XCheckTypedWindowEvent` under XWayland. It can be turned off in Settings.
-- **App icon on Linux**: the package now installs the icon in all standard sizes, so it shows in Hyprland, launchers and taskbars.
-- Fixed the white square where two scrollbars meet in the config editor.
+- **New name and icon**: McLauncher is now **Cairn**, a stack of stones that marks the trail. On Arch the new `cairn` package replaces `mclauncher` automatically; your instances, worlds and settings stay where they are. On Windows the installer upgrades the old app in place.
+- **Styles**: Settings → Appearance now offers four styles instead of a font list, each changing the whole look and typeface. Minimal (the familiar calm look, Onest), Modern Glass (frosted panels over a soft glow, Inter), Frutiger Aero (glossy sky-blue glass and bubbles, Nunito) and Dark Matter (deep space with a neon edge, Space Grotesk). The accent color picker works with all of them.
+- **Native Wayland is now automatic**: on a Wayland session with GLFW 3.4 installed, games open as native Wayland windows, which avoids the XWayland crash (SIGSEGV in libX11) on Hyprland with NVIDIA. Set it to Always or Never in Settings or per instance.
 
 Install: see the README for Arch Linux and Windows instructions.

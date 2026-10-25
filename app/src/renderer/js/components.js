@@ -57,7 +57,7 @@ C.onTask = (t) => {
 // ---------- CurseForge files that need a manual download ----------
 // ---------- modpack files that are missing ----------
 /**
- * Shows files a modpack still needs. The player can open each download page, let McLauncher look in
+ * Shows files a modpack still needs. The player can open each download page, let Cairn look in
  * the Downloads folder, pick or drop the downloaded files, or continue without them.
  * Resolves true when the player chooses to play anyway.
  */
@@ -68,7 +68,7 @@ C.missingFiles = (instId, items, { forLaunch = false } = {}) => new Promise((res
   const drop = h('div.dropzone', U.svg('download'), h('span', 'Drop downloaded files here'));
   function draw() {
     summary.textContent = missing.length
-      ? `${missing.length} file${missing.length === 1 ? ' is' : 's are'} missing. Their authors only allow downloads from their website, or the download failed. Download each one, then drop it here or use the buttons below — McLauncher puts it in the right folder.`
+      ? `${missing.length} file${missing.length === 1 ? ' is' : 's are'} missing. Their authors only allow downloads from their website, or the download failed. Download each one, then drop it here or use the buttons below — Cairn puts it in the right folder.`
       : 'All modpack files are in place.';
     list.replaceChildren(...missing.map(it => h('div.item',
       h('div.txt', h('b', it.title), h('small', `${it.fileName}  →  ${it.folder}`)),
@@ -130,7 +130,7 @@ C.importDialog = () => new Promise((resolve) => {
   };
   const m = C.modal({
     title: 'Import a modpack',
-    subtitle: 'Modrinth .mrpack, CurseForge .zip (Fabric, Forge, NeoForge), Prism Launcher / MultiMC exports and instance folders, McLauncher backups, or any zip or folder with mods and configs.',
+    subtitle: 'Modrinth .mrpack, CurseForge .zip (Fabric, Forge, NeoForge), Prism Launcher / MultiMC exports and instance folders, Cairn backups, or any zip or folder with mods and configs.',
     body: h('div.import-choices',
       h('button.import-choice', { on: { click: () => choose('file') } }, U.svg('file'), h('b', 'Choose a file'), h('span', '.mrpack or .zip')),
       h('button.import-choice', { on: { click: () => choose('folder') } }, U.svg('folder'), h('b', 'Choose a folder'), h('span', 'Prism/MultiMC instance or a .minecraft folder'))),
@@ -279,8 +279,8 @@ C.exportDialog = async (inst) => {
     seg.children[0].classList.toggle('on', f === 'mrpack');
     seg.children[1].classList.toggle('on', f === 'zip');
     fmtHint.textContent = f === 'mrpack'
-      ? 'Mods found on Modrinth are linked, everything else is bundled. Opens in McLauncher, Prism, Modrinth App and others.'
-      : 'Everything you tick is copied into the archive, including the picture. Import it again in McLauncher.';
+      ? 'Mods found on Modrinth are linked, everything else is bundled. Opens in Cairn, Prism, Modrinth App and others.'
+      : 'Everything you tick is copied into the archive, including the picture. Import it again in Cairn.';
     metaFields.style.display = f === 'mrpack' ? '' : 'none';
   }
   const checks = cands.map(c => {

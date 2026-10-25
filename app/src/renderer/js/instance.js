@@ -301,7 +301,7 @@ async function renderLogs(body, inst) {
   const box = h('div.logbox', { role: 'log', tabindex: 0 });
   let follow = true, filter = '', lines = [], liveMode = true;
   box.addEventListener('scroll', () => { follow = box.scrollTop + box.clientHeight >= box.scrollHeight - 30; });
-  const cls = (l) => /\b(ERROR|FATAL|Exception|Caused by)\b/.test(l) ? 'e' : /\bWARN\b/.test(l) ? 'w' : l.startsWith('[McLauncher]') || l.startsWith('# ') ? 'l' : '';
+  const cls = (l) => /\b(ERROR|FATAL|Exception|Caused by)\b/.test(l) ? 'e' : /\bWARN\b/.test(l) ? 'w' : (l.startsWith('[Cairn]') || l.startsWith('[Cairn]')) || l.startsWith('# ') ? 'l' : '';
   const lineEl = (l) => { const d = document.createElement('div'); const c = cls(l); if (c) d.className = c; d.textContent = l; return d; };
   function redraw() {
     const shown = filter ? lines.filter(l => l.toLowerCase().includes(filter)) : lines;
@@ -325,7 +325,7 @@ async function renderLogs(body, inst) {
       if (/LinuxDisplay\.getAvailableDisplayModes|xrandr/i.test(all)) tip = 'Older Minecraft versions need the xrandr tool. Install it (on Arch: sudo pacman -S xorg-xrandr) and press Play again.';
       else if (/XCheckTypedWindowEvent|libX11\.so[^\n]*SIGSEGV|SIGSEGV[\s\S]{0,400}libX11/i.test(all)) {
         tip = 'The game crashed inside XWayland (libX11). Running it as a native Wayland window usually fixes this. It needs the glfw package (on Arch: sudo pacman -S glfw).';
-        fixBtn = h('button.btn', { on: { click: async () => { await U.call('updateInstance', inst.id, { nativeWayland: true }); C.toast('Native Wayland turned on for this instance'); Pages.play(inst); } } }, 'Use native Wayland and play');
+        fixBtn = h('button.btn', { on: { click: async () => { await U.call('updateInstance', inst.id, { nativeWayland: 'on' }); C.toast('Native Wayland turned on for this instance'); Pages.play(inst); } } }, 'Use native Wayland and play');
       }
       else if (/Incompatible mods found|Mod resolution failed|missing mandatory dependencies|Missing or unsupported mandatory dependencies/i.test(all)) tip = 'Some mods are incompatible or missing a dependency. The log below names them.';
       banner.append(h('div.banner.crash', h('div.grow', h('b', `Minecraft closed with an error (code ${s.code})`), h('div.muted', { style: { fontSize: '13px' } }, tip)),
@@ -382,12 +382,12 @@ async function renderInstSettings(body, inst, { refresh }) {
   const { h } = U;
   const st = { name: inst.name, mcVersion: inst.mcVersion, loader: inst.loader, loaderVersion: inst.loaderVersion || '', memory: inst.memory || 4096, jvmArgs: inst.jvmArgs || '', javaPath: inst.javaPath || '', width: inst.width || '', height: inst.height || '' };
   const wl = await U.call('waylandInfo');
-  const wlSel = h('select.input', { on: { change: e => { st.nativeWayland = e.target.value === 'global' ? null : e.target.value === 'on'; } } },
-    h('option', { value: 'global' }, 'Use the global setting'), h('option', { value: 'on' }, 'On: native Wayland window'), h('option', { value: 'off' }, 'Off: XWayland'));
-  wlSel.value = inst.nativeWayland == null ? 'global' : inst.nativeWayland ? 'on' : 'off';
+  const wlSel = h('select.input', { on: { change: e => { st.nativeWayland = e.target.value === 'global' ? null : e.target.value; } } },
+    h('option', { value: 'global' }, 'Use the global setting'), h('option', { value: 'auto' }, 'Automatic: Wayland when GLFW 3.4 is installed'), h('option', { value: 'on' }, 'On: always a Wayland window'), h('option', { value: 'off' }, 'Off: XWayland'));
+  wlSel.value = inst.nativeWayland == null ? 'global' : inst.nativeWayland === true ? 'on' : inst.nativeWayland === false ? 'off' : inst.nativeWayland;
   st.nativeWayland = inst.nativeWayland ?? null;
   const waylandSection = wl.linux ? h('div.section', h('h2', 'Display'),
-    h('p', wl.glfw ? 'Run Minecraft as a native Wayland window (uses your system GLFW). Try this if the game crashes or misbehaves on Hyprland.' : 'Native Wayland needs the system GLFW library. Install it with: sudo pacman -S glfw'),
+    h('p', wl.glfw ? 'Run Minecraft as a native Wayland window through your system GLFW instead of XWayland. Automatic does this whenever GLFW 3.4 is installed.' : 'Native Wayland needs the system GLFW library. Install it with: sudo pacman -S glfw'),
     h('div.field', { style: { marginBottom: 0 } }, h('label', 'Native Wayland'), wlSel)) : null;
   const picker = C.loaderPicker({ loader: st.loader || 'vanilla', mc: st.mcVersion, loaderVersion: st.loaderVersion, allowSnapshots: true });
   const memOut = h('output', (st.memory / 1024).toFixed(1) + ' GB');
