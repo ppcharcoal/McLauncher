@@ -113,12 +113,14 @@ async function resolve(inst, settings, vanilla, report, { compatibleMajors } = {
   }
   if (inst.javaMajor) return forMajor(Number(inst.javaMajor), report);
   if (settings.javaPath) return settings.javaPath;
-  const component = (vanilla.javaVersion && vanilla.javaVersion.component) || 'jre-legacy';
-  const wantedMajor = vanilla.javaVersion && vanilla.javaVersion.majorVersion;
-  if (compatibleMajors && compatibleMajors.length && !(wantedMajor && compatibleMajors.includes(wantedMajor))) {
-    const prefs = [...compatibleMajors].sort((a, b) => (a === 21 ? -1 : b === 21 ? 1 : b - a));
-    for (const m of prefs) { try { return await forMajor(m, report); } catch {} }
+  if (compatibleMajors && compatibleMajors.length) {
+    // A pack that lists the Java versions it supports (Prism packs): prefer 21, then the newest.
+    const prefs = [...new Set(compatibleMajors.map(Number))].sort((a, b) => (a === 21 ? -1 : b === 21 ? 1 : b - a));
+    let lastErr;
+    for (const m of prefs) { try { return await forMajor(m, report); } catch (e) { lastErr = e; } }
+    throw lastErr || new Error('No compatible Java found.');
   }
+  const component = (vanilla.javaVersion && vanilla.javaVersion.component) || 'jre-legacy';
   const java = await mojang.installJava(component, report);
   return java || (IS_WIN ? 'javaw' : 'java');
 }

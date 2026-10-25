@@ -29,7 +29,7 @@ jobs:
       - name: System packages for headless Electron + Minecraft
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers libgbm1 libnss3 libasound2t64 libxss1 libxtst6 libgtk-3-0t64 xauth x11-xserver-utils weston libglfw3-wayland libegl1 libegl-mesa0
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers libgbm1 libnss3 libasound2t64 libxss1 libxtst6 libgtk-3-0t64 xauth x11-xserver-utils weston libegl1 libegl-mesa0
       - run: npm ci
       - name: Unit tests
         run: npm test
@@ -98,7 +98,13 @@ jobs:
           LIBGL_ALWAYS_SOFTWARE: '1'
         run: |
           sh native/build-shim.sh
-          ls -la /usr/lib/x86_64-linux-gnu/libglfw* || true
+          # Arch ships GLFW 3.4; Ubuntu 24.04 only has 3.3, which modern LWJGL can't use. Build 3.4.
+          sudo apt-get install -y cmake libwayland-dev wayland-protocols libxkbcommon-dev libdecor-0-dev libxrandr-dev libxinerama-dev libxcursor-dev libxi-dev > /dev/null
+          git clone -q --depth 1 -b 3.4 https://github.com/glfw/glfw /tmp/glfw
+          cmake -S /tmp/glfw -B /tmp/glfw/build -DBUILD_SHARED_LIBS=ON -DGLFW_BUILD_EXAMPLES=OFF -DGLFW_BUILD_TESTS=OFF -DGLFW_BUILD_DOCS=OFF -DCMAKE_BUILD_TYPE=Release > /dev/null
+          cmake --build /tmp/glfw/build -j4 > /dev/null && sudo cmake --install /tmp/glfw/build > /dev/null && sudo ldconfig
+          sudo apt-get remove -y libglfw3-wayland > /dev/null || true
+          ls -la /usr/local/lib/libglfw* || true
           export XDG_RUNTIME_DIR=$(mktemp -d) && chmod 700 "$XDG_RUNTIME_DIR"
           (weston --backend=headless --renderer=gl --socket=mcl-wl --width=1280 --height=800 > ../ci-out/weston.log 2>&1 &) ; sleep 4
           if ! [ -S "$XDG_RUNTIME_DIR/mcl-wl" ]; then (weston --backend=headless --socket=mcl-wl --width=1280 --height=800 > ../ci-out/weston.log 2>&1 &); sleep 4; fi

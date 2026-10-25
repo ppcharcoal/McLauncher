@@ -151,13 +151,22 @@ function waylandGlfwArg(inst, settings, libraries) {
   const want = process.platform === 'linux' && (inst.nativeWayland ?? settings.nativeWayland) && !!process.env.WAYLAND_DISPLAY;
   const usesGlfw = (libraries || []).some(l => /^org\.lwjgl3?:lwjgl-glfw:3|^org\.lwjgl:lwjgl-glfw/.test(l.name));
   if (!want || !usesGlfw) return null;
-  if (!systemGlfw()) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or turn Native Wayland off in the instance settings.');
+  const sys = systemGlfw();
+  if (!sys) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or turn Native Wayland off in the instance settings.');
+  // LWJGL 3.3+ calls GLFW 3.4 functions; an older system GLFW fails with "A required function is missing".
+  const lwjgl = (libraries || []).map(l => /^org\.lwjgl3?:lwjgl:(\d+)\.(\d+)/.exec(l.name)).find(Boolean);
+  const needs34 = lwjgl && (Number(lwjgl[1]) > 3 || (Number(lwjgl[1]) === 3 && Number(lwjgl[2]) >= 3));
+  if (needs34 && !glfwHas(sys, 'glfwInitAllocator')) throw new Error('Native Wayland needs GLFW 3.4 or newer for this Minecraft version, but the system GLFW is older. Update the glfw package or turn Native Wayland off.');
   return `-Dorg.lwjgl.glfw.libname=${glfwShim() || systemGlfw()}`;
 }
 function glfwShim() {
   const name = 'libmcl-glfw-wayland.so';
   const c = [process.resourcesPath && path.join(process.resourcesPath, 'native', name), path.join(__dirname, '../../native/linux-x64', name)];
   return c.find(p => p && fs.existsSync(p)) || null;
+}
+
+function glfwHas(lib, symbol) {
+  try { return fs.readFileSync(fs.realpathSync(lib)).includes(Buffer.from(symbol + '\0')); } catch { return true; }
 }
 
 function systemGlfw() {
