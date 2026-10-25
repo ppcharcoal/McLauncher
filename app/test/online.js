@@ -52,6 +52,12 @@ const report = () => {};
   });
   await step('modrinth: install fabric-api with deps (newest)', () => modrinth.installProject(newest.id, 'fabric-api', 'mod', {}, report));
   await step('modrinth: install fabric-api (1.21.1)', () => modrinth.installProject(old.id, 'fabric-api', 'mod', {}, report));
+  await step('create native Wayland test instance (Fabric 1.20.1)', async () => {
+    const w = await mk('CI Wayland', '1.20.1');
+    instances.update(w.id, { nativeWayland: true });
+    await modrinth.installProject(w.id, 'fabric-api', 'mod', {}, report);
+    return w.id;
+  });
   await step('prepare game files (1.21.1)', async () => {
     const p = await launch.prepare(instances.get(old.id), { id: '0'.repeat(32), name: 'CiPlayer', mcToken: '0', offline: true }, { memory: 2048 }, (s, p) => {});
     assert.ok(fs.existsSync(p.java), 'java runtime missing: ' + p.java);

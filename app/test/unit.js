@@ -203,4 +203,55 @@ t('import: nested CurseForge zip, raw game-files zip, folder, integrity', () => 
     });
   }).catch(e => { console.error(e); process.exitCode = 1; });
 });
+t('prism component pack (GTNH-style) import + merge', () => {
+  const prism = require('../src/main/prism');
+  const z = new AdmZip();
+  const R = 'GT New Horizons 2.8.4/';
+  z.addFile(R + 'mmc-pack.json', Buffer.from(JSON.stringify({ formatVersion: 1, components: [
+    { uid: 'org.lwjgl3', version: '3.3.3', dependencyOnly: true }, { uid: 'net.minecraft', version: '1.7.10' },
+    { uid: 'me.eigenraven.lwjgl3ify.forgepatches', cachedVersion: '2.1.16', cachedName: 'LWJGL3ify Early Classpath' },
+    { uid: 'net.minecraftforge', version: '10.13.4.1614' }, { uid: 'me.eigenraven.lwjgl3ify.launchargs', cachedVersion: '2.1.16' }] })));
+  z.addFile(R + 'patches/me.eigenraven.lwjgl3ify.forgepatches.json', Buffer.from(JSON.stringify({ uid: 'me.eigenraven.lwjgl3ify.forgepatches', '+jvmArgs': ['-Djava.system.class.loader=X'], libraries: [{ name: 'com.github.GTNewHorizons:lwjgl3ify:2.1.16:forgePatches', 'MMC-hint': 'local' }] })));
+  z.addFile(R + 'patches/me.eigenraven.lwjgl3ify.launchargs.json', Buffer.from(JSON.stringify({ uid: 'me.eigenraven.lwjgl3ify.launchargs', mainClass: 'com.gtnewhorizons.retrofuturabootstrap.Main' })));
+  z.addFile(R + 'libraries/lwjgl3ify-2.1.16-forgePatches.jar', Buffer.from('jar'));
+  z.addFile(R + 'instance.cfg', Buffer.from('InstanceType=OneSix\niconKey=gtnh_icon\nname=GTNH 2.8.4\nOverrideMemory=true\nMaxMemAlloc=6144\n'));
+  // 1x1 png
+  z.addFile(R + 'gtnh_icon.png', Buffer.from('89504e470d0a1a0a0000000d49484452000000010000000108060000001f15c4890000000d4944415478da63f8cf00000301010018dd8db40000000049454e44ae426082', 'hex'));
+  z.addFile(R + '.minecraft/mods/gt.jar', Buffer.from('x'));
+  const f = path.join(process.env.MCL_DATA_DIR, 'gtnh.zip');
+  z.writeZip(f);
+  return packs.importFile(f).then(r => {
+    const i = r.instance;
+    assert.strictEqual(i.name, 'GTNH 2.8.4');
+    assert.strictEqual(i.prism, true);
+    assert.strictEqual(i.loader, 'forge');
+    assert.strictEqual(i.memory, 6144);
+    assert.ok(i.iconFile && i.iconFile.startsWith('icon.'), 'icon not imported');
+    assert.ok(fs.existsSync(path.join(instances.dirOf(i.id), 'prism', 'libraries', 'lwjgl3ify-2.1.16-forgePatches.jar')));
+    assert.ok(fs.existsSync(path.join(instances.gameDir(i.id), 'mods', 'gt.jar')));
+    const comps = prism.components(i.id);
+    assert.strictEqual(comps.length, 5);
+    assert.ok(comps.find(c => c.uid === 'me.eigenraven.lwjgl3ify.launchargs').custom);
+    const m = prism.merge([
+      { mainClass: 'net.minecraft.client.main.Main', libraries: [{ name: 'com.google.guava:guava:15.0' }, { name: 'a:b:1' }], compatibleJavaMajors: [8] },
+      { compatibleJavaMajors: [17, 21] },
+      { '+tweakers': ['T'], libraries: [{ name: 'com.google.guava:guava:17.0' }], mainClass: 'M' },
+    ]);
+    assert.strictEqual(m.mainClass, 'M');
+    assert.deepStrictEqual(m.tweakers, ['T']);
+    assert.deepStrictEqual(m.libraries.map(l => l.name), ['com.google.guava:guava:17.0', 'a:b:1']);
+    assert.deepStrictEqual(m.compatibleJavaMajors, [17, 21]);
+    // a plain Prism Forge pack stays native
+    assert.strictEqual(prism.needsEngine({ components: [{ uid: 'org.lwjgl', version: '2.9.4' }, { uid: 'net.minecraft', version: '1.7.10' }, { uid: 'net.minecraftforge', version: '10.13.4.1614' }] }, [], false), false);
+    console.log('ok - prism engine import (async)');
+  }).catch(e => { console.error(e); process.exitCode = 1; });
+});
+t('env parsing + java version parsing', () => {
+  const launch = require('../src/main/launch');
+  assert.deepStrictEqual(launch.parseEnv('A=1\n# c\nB = two words\nbad line\n'), { A: '1', B: 'two words' });
+  const java = require('../src/main/java');
+  assert.strictEqual(java.majorOf('1.8.0_202'), 8);
+  assert.strictEqual(java.majorOf('21.0.3'), 21);
+  assert.strictEqual(java.majorOf('17'), 17);
+});
 process.on('exit', () => console.log(`${n} test groups passed`));

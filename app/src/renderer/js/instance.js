@@ -34,6 +34,7 @@ Pages.instance = async (main, route) => {
         h('div.meta',
           h('span.badge', `Minecraft ${inst.mcVersion}`),
           h('span.badge', U.loaderVersionLabel(inst)),
+          inst.prism ? h('span.badge', { title: (inst.components || []).join('\n') }, 'Prism pack') : null,
           inst.source && inst.source.version ? h('span.badge', `Pack ${inst.source.version}`) : null,
           h('span', U.duration(inst.playTime)),
           stateText ? h('span', { style: { color: 'var(--accent)', fontWeight: 600 } }, stateText) : null)),
@@ -390,25 +391,83 @@ async function renderInstSettings(body, inst, { refresh }) {
     h('div.field', { style: { marginBottom: 0 } }, h('label', 'Native Wayland'), wlSel)) : null;
   const picker = C.loaderPicker({ loader: st.loader || 'vanilla', mc: st.mcVersion, loaderVersion: st.loaderVersion, allowSnapshots: true });
   const memOut = h('output', (st.memory / 1024).toFixed(1) + ' GB');
+
+  // ---- Java ----
+  st.javaMajor = inst.javaMajor || null;
+  st.envVars = inst.envVars || '';
+  const javaSel = h('select.input', { 'aria-label': 'Java version' }, h('option', { value: 'auto' }, 'Automatic'));
+  const pathIn = h('input.input', { placeholder: '/usr/lib/jvm/java-21-openjdk/bin/java', value: st.javaPath, on: { input: e => { st.javaPath = e.target.value; javaStatus.textContent = ''; } } });
+  const javaStatus = h('span.hint');
+  const pathRow = h('div.field', { style: { marginTop: '10px', marginBottom: 0 } }, h('label', 'Java executable'),
+    h('div.row', h('div.grow', pathIn),
+      h('button.btn', { on: { click: async () => { const p = await U.call('pickJava'); if (p) { pathIn.value = st.javaPath = p; testJava(); } } } }, U.svg('folder'), 'Browse'),
+      h('button.btn', { on: { click: () => testJava() } }, U.svg('check'), 'Test')),
+    javaStatus);
+  async function testJava() {
+    if (!st.javaPath.trim()) return;
+    javaStatus.textContent = 'Testing…';
+    try { const v = await U.call('javaTest', st.javaPath.trim()); javaStatus.textContent = `Java ${v.version}${v.vendor ? ' from ' + v.vendor : ''}${v.arch ? ', ' + v.arch : ''}`; javaStatus.style.color = 'var(--accent)'; }
+    catch (e) { javaStatus.textContent = e.message; javaStatus.style.color = 'var(--danger)'; }
+  }
+  const javaHint = h('p');
+  function syncJava() {
+    const v = javaSel.value;
+    pathRow.style.display = v === 'custom' ? '' : 'none';
+    if (v === 'auto') { st.javaMajor = null; st.javaPath = ''; }
+    else if (v.startsWith('m:')) { st.javaMajor = Number(v.slice(2)); st.javaPath = ''; }
+    else if (v.startsWith('p:')) { st.javaMajor = null; st.javaPath = v.slice(2); pathIn.value = st.javaPath; }
+    else if (v === 'custom') { st.javaMajor = null; st.javaPath = pathIn.value; }
+  }
+  javaSel.addEventListener('change', syncJava);
+  javaHint.textContent = inst.prism ? 'Automatic uses a Java version the pack supports.' : 'Automatic uses the Java version Mojang recommends for this Minecraft version and downloads it if needed.';
+  U.call('javaOptions').then(o => {
+    const opts = [h('option', { value: 'auto' }, 'Automatic (recommended)')];
+    if (o.mojang.length) opts.push(h('optgroup', { label: 'Download from Mojang' }, o.mojang.map(m => h('option', { value: `m:${m.major}` }, `Java ${m.major}  (${m.version})`))));
+    if (o.system.length) opts.push(h('optgroup', { label: 'Installed on this computer' }, o.system.map(j => h('option', { value: `p:${j.path}` }, `Java ${j.version}  ${j.vendor ? '· ' + j.vendor + ' ' : ''}— ${j.path}`))));
+    opts.push(h('option', { value: 'custom' }, 'Custom path…'));
+    javaSel.replaceChildren(...opts);
+    if (st.javaPath) javaSel.value = o.system.some(j => j.path === st.javaPath) ? `p:${st.javaPath}` : 'custom';
+    else if (st.javaMajor) javaSel.value = `m:${st.javaMajor}`;
+    else javaSel.value = 'auto';
+    if (!javaSel.value) javaSel.value = 'custom';
+    syncJava();
+  }).catch(() => { javaSel.append(h('option', { value: 'custom' }, 'Custom path…')); });
+  pathRow.style.display = st.javaPath ? '' : 'none';
+  const javaSection = h('div.section', h('h2', 'Java'), javaHint,
+    h('div.field', { style: { marginBottom: 0 } }, h('label', 'Java version'), javaSel), pathRow,
+    h('div.field', { style: { marginTop: '16px', marginBottom: 0 } }, h('label', 'Environment variables'),
+      h('textarea.input.mono', { rows: 3, placeholder: 'KEY=value, one per line', spellcheck: false, value: st.envVars, on: { input: e => st.envVars = e.target.value } }),
+      h('span.hint', 'Passed to the game only. On Linux, NVIDIA threaded optimizations are already turned off for Minecraft.')));
+
+  // ---- version / components ----
+  let versionSection;
+  if (inst.prism) {
+    const comps = await U.call('prismComponents', inst.id).catch(() => []);
+    versionSection = h('div.section', h('h2', 'Game version'),
+      h('p', 'This instance came from Prism Launcher or MultiMC and is built from the pack\'s own components. Update it by importing a newer version of the pack.'),
+      h('div.list', comps.map(c => h('div.item', { style: { minHeight: '44px' } }, h('div.txt', h('b', c.name), h('small', c.uid)), h('span.badge', c.version || ''), c.custom ? h('span.badge', 'From the pack') : null))));
+  } else {
+    versionSection = h('div.section', h('h2', 'Game version'), h('p', 'Changing versions can break mods and worlds. Make a copy first if you are unsure.'), picker.el);
+  }
   body.append(h('div.settings-wrap',
     h('div.section', h('h2', 'General'), h('p', 'Name and picture shown in your library.'),
       h('div.field', h('label', 'Name'), h('input.input', { value: st.name, on: { input: e => st.name = e.target.value } })),
       h('div.row', h('button.btn', { on: { click: async () => { const r = await U.call('pickIcon', inst.id); if (r) { refresh(); App.refreshInstances(); } } } }, U.svg('image'), 'Change picture'),
         inst.iconUrl ? h('button.btn.ghost', { on: { click: async () => { await U.call('clearIcon', inst.id); refresh(); App.refreshInstances(); } } }, 'Use generated picture') : null)),
-    h('div.section', h('h2', 'Game version'), h('p', 'Changing versions can break mods and worlds. Make a copy first if you are unsure.'),
-      picker.el),
+    versionSection,
+    javaSection,
     waylandSection,
     h('div.section', h('h2', 'Performance'), h('p', 'Memory given to Minecraft. Most modpacks run well with 4–8 GB.'),
       h('div.field', h('div.range-row', h('input', { type: 'range', min: 1024, max: 32768, step: 512, value: st.memory, on: { input: e => { st.memory = +e.target.value; memOut.textContent = (st.memory / 1024).toFixed(1) + ' GB'; } } }), memOut)),
       h('div.grid2',
         h('div.field', h('label', 'Window width'), h('input.input', { type: 'number', placeholder: 'Default', value: st.width, on: { input: e => st.width = e.target.value } })),
         h('div.field', h('label', 'Window height'), h('input.input', { type: 'number', placeholder: 'Default', value: st.height, on: { input: e => st.height = e.target.value } }))),
-      h('div.field', h('label', 'Extra Java arguments'), h('input.input', { placeholder: '-XX:+UseZGC', value: st.jvmArgs, on: { input: e => st.jvmArgs = e.target.value } })),
-      h('div.field', h('label', 'Java executable'), h('input.input', { placeholder: 'Automatic (downloaded for each Minecraft version)', value: st.javaPath, on: { input: e => st.javaPath = e.target.value } }))),
+      h('div.field', { style: { marginBottom: 0 } }, h('label', 'Extra Java arguments'), h('input.input', { placeholder: '-XX:+UseZGC', value: st.jvmArgs, on: { input: e => st.jvmArgs = e.target.value } }))),
     h('div.row', h('div.spacer'), h('button.btn.primary', { on: { click: async () => {
       try {
-        picker.validate();
-        await U.call('updateInstance', inst.id, { name: st.name.trim() || inst.name, ...picker.get(), nativeWayland: st.nativeWayland, memory: st.memory, jvmArgs: st.jvmArgs, javaPath: st.javaPath.trim(), width: +st.width || null, height: +st.height || null });
+        if (!inst.prism) picker.validate();
+        if (javaSel.value === 'custom' && !st.javaPath.trim()) throw new Error('Enter the path to a Java executable, or pick another Java.');
+        await U.call('updateInstance', inst.id, { name: st.name.trim() || inst.name, ...(inst.prism ? {} : picker.get()), nativeWayland: st.nativeWayland, memory: st.memory, jvmArgs: st.jvmArgs, javaPath: st.javaPath.trim(), javaMajor: st.javaMajor, envVars: st.envVars, width: +st.width || null, height: +st.height || null });
         C.toast('Settings saved'); refresh(); App.refreshInstances();
       } catch (e) { C.toast(e.message, 'err'); }
     } } }, 'Save changes'))));

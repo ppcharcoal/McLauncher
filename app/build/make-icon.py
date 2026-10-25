@@ -20,3 +20,9 @@ def make(N, out):
     d.polygon(P([(32+g*0.6,32+g*0.4),(48,23+g),(48,41),(32+g*0.6,50)]),fill=(160,222,206,255))
     img.resize((N,N),Image.LANCZOS).save(out)
 make(1024,'build/icon.png'); 
+
+# Linux icon theme sizes (hicolor has no 1024x1024 folder)
+import os
+os.makedirs('build/icons', exist_ok=True)
+for n in [16, 24, 32, 48, 64, 128, 256, 512]:
+    make(n, f'build/icons/{n}x{n}.png')

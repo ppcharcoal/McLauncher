@@ -209,6 +209,27 @@ function extractNatives(nativeJars, dir) {
 }
 
 // ---------- Java runtime ----------
+let javaAllCache = null;
+async function javaAll() {
+  const file = path.join(P.cache, 'java-runtimes.json');
+  if (javaAllCache && Date.now() - javaAllCache.t < 30 * 60e3) return javaAllCache.data;
+  try { const data = await fetchJson(JAVA_ALL_URL); writeJson(file, data); javaAllCache = { t: Date.now(), data }; return data; }
+  catch (e) { const c = readJson(file, null); if (c) return c; throw e; }
+}
+function javaPlatform() {
+  if (IS_WIN) return { x64: 'windows-x64', ia32: 'windows-x86', arm64: 'windows-arm64' }[process.arch];
+  if (process.arch === 'arm64' || process.arch === 'arm') return null;
+  return process.arch === 'ia32' ? 'linux-i386' : 'linux';
+}
+/** { component: { version } } for runtimes Mojang offers on this computer. */
+async function javaRuntimes() {
+  const all = await javaAll();
+  const out = {};
+  for (const [component, list] of Object.entries(all[javaPlatform()] || {})) {
+    if (list && list[0] && list[0].version) out[component] = { version: list[0].version.name };
+  }
+  return out;
+}
 async function installJava(component, report) {
   let platform;
   if (IS_WIN) platform = { x64: 'windows-x64', ia32: 'windows-x86', arm64: 'windows-arm64' }[process.arch];
@@ -221,7 +242,7 @@ async function installJava(component, report) {
   const marker = path.join(dir, '.mcl-complete');
   if (fs.existsSync(java) && fs.existsSync(marker)) return java;
   report(`Downloading Java (${component})`);
-  const all = await fetchJson(JAVA_ALL_URL);
+  const all = await javaAll();
   const list = (all[platform] || {})[component];
   if (!list || !list.length) return null;
   const manifest = await fetchJson(list[0].manifest.url);
@@ -243,7 +264,7 @@ async function installJava(component, report) {
 }
 
 module.exports = {
-  OS, fixMaven,
+  OS, fixMaven, javaRuntimes,
   getManifest, getVanillaJson, mergeVersions, installClient, installAssets, extractNatives, installJava,
   planLibraries, rulesAllow, mavenPath, libKey, nativeClassifierOk,
 };

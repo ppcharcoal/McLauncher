@@ -13,7 +13,7 @@ permissions:
 jobs:
   test:
     runs-on: ubuntu-24.04
-    timeout-minutes: 90
+    timeout-minutes: 120
     defaults:
       run:
         working-directory: app
@@ -29,7 +29,7 @@ jobs:
       - name: System packages for headless Electron + Minecraft
         run: |
           sudo apt-get update
-          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers libgbm1 libnss3 libasound2t64 libxss1 libxtst6 libgtk-3-0t64 xauth x11-xserver-utils
+          sudo apt-get install -y xvfb libgl1-mesa-dri libglx-mesa0 mesa-vulkan-drivers libgbm1 libnss3 libasound2t64 libxss1 libxtst6 libgtk-3-0t64 xauth x11-xserver-utils weston libglfw3-wayland libegl1 libegl-mesa0
       - run: npm ci
       - name: Unit tests
         run: npm test
@@ -87,13 +87,47 @@ jobs:
             node -e "const r=require(process.env.MCL_TEST_RESULT); console.log(process.env.MCL_TEST_LAUNCH, {code:r.code, started:r.started, reached:r.reachedRunning, hidden:r.hidden, error:r.error}); if(!r.reachedRunning||!r.hidden) process.exit(1)" || fail=1
           done
           exit $fail
+      - name: Native Wayland (weston headless) with Fabric 1.20.1 through the GLFW shim
+        if: always()
+        timeout-minutes: 14
+        env:
+          MCL_TEST_OFFLINE: CiPlayer
+          MCL_TEST_EXIT_AFTER_READY: '1'
+          MCL_TEST_LAUNCH: ci-wayland
+          MCL_TEST_RESULT: ${{ github.workspace }}/launch-wayland.json
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          sh native/build-shim.sh
+          ls -la /usr/lib/x86_64-linux-gnu/libglfw* || true
+          export XDG_RUNTIME_DIR=$(mktemp -d) && chmod 700 "$XDG_RUNTIME_DIR"
+          (weston --backend=headless --renderer=gl --socket=mcl-wl --width=1280 --height=800 > ../ci-out/weston.log 2>&1 &) ; sleep 4
+          if ! [ -S "$XDG_RUNTIME_DIR/mcl-wl" ]; then (weston --backend=headless --socket=mcl-wl --width=1280 --height=800 > ../ci-out/weston.log 2>&1 &); sleep 4; fi
+          ls -la "$XDG_RUNTIME_DIR"
+          # Electron itself stays on Xvfb; only the game gets the Wayland socket.
+          WAYLAND_DISPLAY=mcl-wl timeout -k 15 600 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox --ozone-platform=x11 > ../ci-out/launch-wayland.out 2>&1 || true
+          node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, started:r.started, sawWindow:r.sawWindow, glfwError:r.glfwError, error:r.error}); console.log(r.tail.slice(-25).join('\n')); if(r.glfwError && /65548/.test(r.glfwError)) process.exit(1); if(!r.sawWindow) console.log('::warning::Minecraft did not open a window on headless weston (EGL on the runner); the icon error did not occur')"
+      - name: GT New Horizons 2.8.4 (Java 17+ Prism pack) import and launch
+        if: always()
+        timeout-minutes: 30
+        env:
+          MCL_TEST_OFFLINE: CiPlayer
+          MCL_TEST_READY_PATTERN: 'Attempting early MinecraftForge initialization|Completed early MinecraftForge initialization|Constructing mods'
+          MCL_TEST_RESULT: ${{ github.workspace }}/launch-gtnh.json
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          timeout 900 node test/gtnh.js | tee ../ci-out/gtnh-import.txt
+          export MCL_TEST_LAUNCH=$(cat "$MCL_DATA_DIR/gtnh-id.txt")
+          timeout -k 15 840 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox > ../ci-out/launch-gtnh.out 2>&1 || true
+          node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, fml:r.fmlStarted, ready:r.readyPattern, hidden:r.hidden, error:r.error}); console.log(r.tail.slice(-30).join('\n')); if(!r.readyPattern){ if(r.fmlStarted) console.log('::warning::GTNH started Forge but did not reach early init in time'); else process.exit(1) }"
       - name: UI screenshots
-        timeout-minutes: 6
+        timeout-minutes: 7
         if: always()
         env:
           MCL_TEST_SHOTS: ${{ github.workspace }}/shots
           MCL_TEST_SHOT_INST: ci-1-21-1
-        run: timeout -k 15 240 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox || true
+        run: |
+          export MCL_TEST_SHOT_INST2=$(cat "$MCL_DATA_DIR/gtnh-id.txt" 2>/dev/null || true)
+          timeout -k 15 320 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox || true
       - name: Collect logs
         if: always()
         run: |
@@ -133,8 +167,14 @@ jobs:
       - name: Packaging tools (bsdtar for pacman packages)
         run: sudo apt-get update && sudo apt-get install -y libarchive-tools rpm
       - run: npm ci
+      - name: Build the GLFW Wayland shim
+        run: sh native/build-shim.sh
       - name: Build Linux packages
         run: npx electron-builder --linux pacman AppImage tar.gz --x64 --publish never
+      - name: Check package contents
+        run: |
+          tar -tf dist/*.tar.gz | grep -E 'native/libmcl-glfw-wayland.so' 
+          mkdir -p /tmp/pk && bsdtar -xf dist/*.pacman -C /tmp/pk && find /tmp/pk/usr/share/icons -name '*.png' | sort && cat /tmp/pk/usr/share/applications/*.desktop
       - name: List output
         run: ls -la dist
       - uses: actions/upload-artifact@v5

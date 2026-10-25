@@ -84,13 +84,27 @@ function guessFromZip(zip, root, name) {
   return guessFromJars(jars, name);
 }
 
+/** A folder that looks like an AdmZip archive (entries are read from disk only when needed). */
+function dirZip(dir) {
+  const entries = [];
+  const walk = (abs, rel) => {
+    for (const d of fs.readdirSync(abs, { withFileTypes: true })) {
+      const a = path.join(abs, d.name), r = rel ? `${rel}/${d.name}` : d.name;
+      if (d.isDirectory()) walk(a, r);
+      else if (d.isFile()) entries.push({ entryName: r, isDirectory: false, getData: () => fs.readFileSync(a) });
+    }
+  };
+  walk(dir, '');
+  const byName = new Map(entries.map(e => [e.entryName, e]));
+  return { getEntries: () => entries, getEntry: (n) => byName.get(n) || null };
+}
+
 /** Import a folder: a Prism/MultiMC instance, an unzipped modpack, or a plain .minecraft-style folder. */
 async function importFolder(dir, report = () => {}) {
   const has = (p) => fs.existsSync(path.join(dir, p));
-  const zipOf = () => { const z = new AdmZip(); z.addLocalFolder(dir); return z; };
-  if (has('mmc-pack.json')) return { instance: await importPrism(zipOf(), ''), blocked: [] };
-  if (has('modrinth.index.json')) { const inst = await modrinth.importMrpack(zipOf(), { report }); return { instance: inst, blocked: inst.missing || [] }; }
-  if (has('manifest.json')) return curseforge.importZip(zipOf(), { report });
+  if (has('mmc-pack.json')) return { instance: await importPrism(dirZip(dir), ''), blocked: [] };
+  if (has('modrinth.index.json')) { const inst = await modrinth.importMrpack(dirZip(dir), { report }); return { instance: inst, blocked: inst.missing || [] }; }
+  if (has('manifest.json')) return curseforge.importZip(dirZip(dir), { report });
   for (const sub of ['', '.minecraft', 'minecraft']) {
     const base = path.join(dir, sub);
     if (GAME_DIRS.some(d => fs.existsSync(path.join(base, d)))) {
@@ -149,27 +163,78 @@ function importOwn(zip, root) {
   return instances.get(inst.id);
 }
 
+/** Parse Prism/MultiMC instance.cfg (INI-like, top-level keys only). */
+function parseCfg(text) {
+  const out = {};
+  for (const line of String(text || '').split(/\r?\n/)) {
+    if (/^\s*\[/.test(line)) continue;
+    const m = /^\s*([^=#;]+?)\s*=(.*)$/.exec(line);
+    if (m) out[m[1]] = m[2].trim();
+  }
+  return out;
+}
+
 async function importPrism(zip, root) {
+  const prism = require('./prism');
   const pack = JSON.parse(zip.getEntry(root + 'mmc-pack.json').getData().toString('utf8'));
-  const comp = (uid) => (pack.components || []).find(c => c.uid === uid);
+  const comps = (pack.components || []).filter(c => !c.disabled);
+  const comp = (uid) => comps.find(c => c.uid === uid);
   const mc = comp('net.minecraft');
   if (!mc) throw new Error('The Prism instance has no Minecraft version.');
   if (comp('org.quiltmc.quilt-loader')) throw new Error('This Prism instance uses Quilt. McLauncher supports Fabric, Forge, NeoForge and vanilla.');
+  const mcVersion = mc.version || mc.cachedVersion;
+  const entries = zip.getEntries().filter(e => !e.isDirectory && e.entryName.startsWith(root));
+  const rel = (e) => e.entryName.slice(root.length);
+  const patches = entries.filter(e => /^patches\/[^/]+\.json$/.test(rel(e)));
+  const libs = entries.filter(e => /^libraries\/[^/]+$/.test(rel(e)));
+  const useEngine = prism.needsEngine(pack, patches.map(rel), libs.length > 0);
+
   const fab = comp('net.fabricmc.fabric-loader');
   const fg = comp('net.minecraftforge');
   const neo = comp('net.neoforged');
   const forge = require('./forge');
   let loader = 'vanilla', loaderVersion = null;
-  if (fab) { loader = 'fabric'; loaderVersion = fab.version; }
-  else if (neo) { loader = 'neoforge'; loaderVersion = await forge.fullVersion('neoforge', mc.version, neo.version); }
-  else if (fg) { loader = 'forge'; loaderVersion = await forge.fullVersion('forge', mc.version, fg.version); }
-  let name = 'Imported instance';
-  const cfg = zip.getEntry(root + 'instance.cfg');
-  if (cfg) { const m = /^name=(.*)$/m.exec(cfg.getData().toString('utf8')); if (m) name = m[1].trim(); }
-  const inst = instances.create({ name, mcVersion: mc.version, loader, loaderVersion });
-  const names = zip.getEntries().map(e => e.entryName);
-  const gamePrefix = names.some(n => n.startsWith(root + '.minecraft/')) ? root + '.minecraft/' : root + 'minecraft/';
-  extractPrefix(zip, gamePrefix, instances.gameDir(inst.id));
+  const v = (c) => c.version || c.cachedVersion;
+  if (fab) { loader = 'fabric'; loaderVersion = v(fab); }
+  else if (neo) { loader = 'neoforge'; loaderVersion = useEngine ? v(neo) : await forge.fullVersion('neoforge', mcVersion, v(neo)); }
+  else if (fg) { loader = 'forge'; loaderVersion = useEngine ? `${mcVersion}-${v(fg)}` : await forge.fullVersion('forge', mcVersion, v(fg)); }
+
+  const cfgEntry = zip.getEntry(root + 'instance.cfg');
+  const cfg = parseCfg(cfgEntry ? cfgEntry.getData().toString('utf8') : '');
+  const name = cfg.name || 'Imported instance';
+  const opts = { name, mcVersion, loader, loaderVersion };
+  if (cfg.OverrideMemory === 'true' && Number(cfg.MaxMemAlloc)) opts.memory = Number(cfg.MaxMemAlloc);
+  const inst = instances.create(opts);
+  try {
+    const patch = {};
+    if (cfg.OverrideJavaArgs === 'true' && cfg.JvmArgs) patch.jvmArgs = cfg.JvmArgs;
+    if (useEngine) {
+      prism.store(inst.id, { packJson: zip.getEntry(root + 'mmc-pack.json').getData(), patches: patches.map(e => [rel(e), e.getData()]), libraries: libs.map(e => [rel(e), e.getData()]) });
+      patch.prism = true;
+      patch.components = prism.components(inst.id).map(c => `${c.name} ${c.version}`);
+    }
+    if (Object.keys(patch).length) instances.update(inst.id, patch);
+
+    const names = entries.map(e => e.entryName);
+    const gamePrefix = names.some(n => n.startsWith(root + '.minecraft/')) ? root + '.minecraft/' : root + 'minecraft/';
+    extractPrefix(zip, gamePrefix, instances.gameDir(inst.id));
+
+    // Picture: Prism stores the instance's icon key in instance.cfg and exports the image next to it.
+    const key = cfg.iconKey && cfg.iconKey !== 'default' ? cfg.iconKey : null;
+    const isImg = (n) => /\.(png|jpe?g|gif|webp)$/i.test(n);
+    let icon = key && entries.find(e => isImg(rel(e)) && !rel(e).includes('/') && rel(e).replace(/\.[^.]+$/, '') === key);
+    if (!icon && key) icon = entries.find(e => isImg(rel(e)) && /^(icons\/)?[^/]+$/.test(rel(e)) && path.basename(rel(e)).replace(/\.[^.]+$/, '') === key);
+    if (!icon) icon = entries.find(e => isImg(rel(e)) && /^(icon|instance)\.[a-z]+$/i.test(rel(e)));
+    if (!icon) { const root1 = entries.filter(e => isImg(rel(e)) && !rel(e).includes('/')); if (root1.length === 1) icon = root1[0]; }
+    if (icon) {
+      const tmp = path.join(ensure(path.join(P.cache, 'icons')), `${inst.id}-${path.basename(rel(icon))}`);
+      fs.writeFileSync(tmp, icon.getData());
+      try { await instances.setIcon(inst.id, { file: tmp }); } finally { fs.rmSync(tmp, { force: true }); }
+    }
+  } catch (e) {
+    instances.remove(inst.id);
+    throw e;
+  }
   return instances.get(inst.id);
 }
 

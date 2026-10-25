@@ -55,6 +55,8 @@ a { color: var(--amethyst); text-decoration: none; }
 ::-webkit-scrollbar { width: 10px; height: 10px; }
 ::-webkit-scrollbar-thumb { background: var(--line); border-radius: 10px; border: 2px solid transparent; background-clip: padding-box; }
 ::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-corner { background: transparent; }
+textarea::-webkit-scrollbar-corner, .logbox::-webkit-scrollbar-corner, .preview::-webkit-scrollbar-corner { background: transparent; }
 svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .pixel { image-rendering: pixelated; }
 @media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
@@ -398,3 +400,6 @@ textarea.editor:focus-visible { box-shadow: inset 0 0 0 2px color-mix(in srgb, v
 .import-choice span { color: var(--muted); font-size: 13px; }
 
 .field > .segmented { align-self: flex-start; }
+
+textarea.input.mono { font: 12.5px/1.5 ui-monospace, 'JetBrains Mono', monospace; min-height: 72px; }
+select.input optgroup { background: var(--panel); color: var(--muted); }

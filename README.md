@@ -11,14 +11,16 @@ A simple, fast Minecraft: Java Edition launcher for Linux (Arch first) and Windo
 - **Gets out of the way while you play**: the launcher closes once Minecraft is up, so it uses no memory or GPU in the background, and reopens on the game's log when you quit. Logs of every session are kept.
 - **Light, dark or system theme**, an accent color, and your choice of font and text size.
 - **Edit config files** right in the launcher (Files tab) with JSON checking.
+- **Per-instance Java**: automatic, a downloaded Java 8/17/21/25, any installed Java, or a custom path.
+- **Prism/MultiMC packs with custom components** (e.g. GT New Horizons Java 17+) run as their authors intended.
 - **Wayland/Hyprland native**, wraps the game with Feral GameMode when it is installed, downloads the right Java for every Minecraft version.
 
 ## Install on Arch Linux
 
 ```bash
 # download and install the package from the latest release
-curl -LO https://github.com/ppcharcoal/McLauncher/releases/download/v0.4.0/mclauncher-0.4.0-x64.pacman
-sudo pacman -U ./mclauncher-0.4.0-x64.pacman
+curl -LO https://github.com/ppcharcoal/McLauncher/releases/download/v0.5.0/mclauncher-0.5.0-x64.pacman
+sudo pacman -U ./mclauncher-0.5.0-x64.pacman
 
 # optional: better in-game performance, and native Wayland game windows on Hyprland
 sudo pacman -S --needed gamemode glfw
@@ -33,14 +35,14 @@ Uninstall with `sudo pacman -R mclauncher`. Your instances live in `~/.local/sha
 
 ## Install on Windows
 
-Download **`mclauncher-0.4.0-setup.exe`** from the [latest release](https://github.com/ppcharcoal/McLauncher/releases/latest) and run it. Windows SmartScreen may warn that the app is unrecognized because it isn't code-signed — click **More info → Run anyway**.
+Download **`mclauncher-0.5.0-setup.exe`** from the [latest release](https://github.com/ppcharcoal/McLauncher/releases/latest) and run it. Windows SmartScreen may warn that the app is unrecognized because it isn't code-signed — click **More info → Run anyway**.
 
-Prefer no install? Use **`mclauncher-0.4.0-portable.exe`** instead. Data lives in `%APPDATA%\mclauncher`.
+Prefer no install? Use **`mclauncher-0.5.0-portable.exe`** instead. Data lives in `%APPDATA%\mclauncher`.
 
 Or from PowerShell:
 
 ```powershell
-Invoke-WebRequest https://github.com/ppcharcoal/McLauncher/releases/download/v0.4.0/mclauncher-0.4.0-setup.exe -OutFile mclauncher-setup.exe
+Invoke-WebRequest https://github.com/ppcharcoal/McLauncher/releases/download/v0.5.0/mclauncher-0.5.0-setup.exe -OutFile mclauncher-setup.exe
 .\mclauncher-setup.exe
 ```
 
@@ -49,8 +51,8 @@ Invoke-WebRequest https://github.com/ppcharcoal/McLauncher/releases/download/v0.
 Use the AppImage from the release page:
 
 ```bash
-chmod +x mclauncher-0.4.0-x86_64.AppImage
-./mclauncher-0.4.0-x86_64.AppImage
+chmod +x mclauncher-0.5.0-x86_64.AppImage
+./mclauncher-0.5.0-x86_64.AppImage
 ```
 
 ### Hyprland

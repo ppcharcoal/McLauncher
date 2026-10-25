@@ -7,6 +7,8 @@ const { download, pool, VERSION } = require('./net');
 const mojang = require('./mojang');
 const fabric = require('./fabric');
 const forge = require('./forge');
+const javaSel = require('./java');
+const prism = require('./prism');
 const instances = require('./instances');
 
 const PERF_FLAGS = [
@@ -55,28 +57,25 @@ async function resolveVersion(inst, java, report = () => {}) {
   return { version: mojang.mergeVersions(child, vanilla), vanilla, ownJar: true };
 }
 
-async function resolveJava(inst, settings, vanilla, report) {
-  let java = inst.javaPath || settings.javaPath || '';
-  if (!java) {
-    const component = (vanilla.javaVersion && vanilla.javaVersion.component) || 'jre-legacy';
-    java = await mojang.installJava(component, report);
-    if (!java) java = process.platform === 'win32' ? 'javaw' : 'java';
-  }
-  return java;
-}
-
 /** Download everything needed and build the java command line. */
 async function prepare(inst, account, settings, report) {
   report('Checking game files');
-  // Java first: Forge/NeoForge installation runs Java tools.
-  const java = await resolveJava(inst, settings, await mojang.getVanillaJson(inst.mcVersion), report);
-  const { version, vanilla, ownJar } = await resolveVersion(inst, java, report);
-  let clientJar = await mojang.installClient(vanilla, report);
-  if (ownJar) {
-    // Forge 1.17+ expects the game jar to be named after the Forge version (versions/<id>/<id>.jar).
-    const named = path.join(P.versions, version.id, `${version.id}.jar`);
-    if (!fs.existsSync(named) || fs.statSync(named).size !== fs.statSync(clientJar).size) fs.copyFileSync(clientJar, named);
-    clientJar = named;
+  let java, version, clientJar, extraJvm = [], extraGame = [];
+  if (inst.prism) {
+    // Instance imported from Prism/MultiMC with its own components (e.g. GTNH with lwjgl3ify).
+    ({ java, version, clientJar, extraJvm, extraGame } = await prism.resolve(inst, settings, report));
+  } else {
+    // Java first: Forge/NeoForge installation runs Java tools.
+    java = await javaSel.resolve(inst, settings, await mojang.getVanillaJson(inst.mcVersion), report);
+    const r = await resolveVersion(inst, java, report);
+    version = r.version;
+    clientJar = await mojang.installClient(r.vanilla, report);
+    if (r.ownJar) {
+      // Forge 1.17+ expects the game jar to be named after the Forge version (versions/<id>/<id>.jar).
+      const named = path.join(P.versions, version.id, `${version.id}.jar`);
+      if (!fs.existsSync(named) || fs.statSync(named).size !== fs.statSync(clientJar).size) fs.copyFileSync(clientJar, named);
+      clientJar = named;
+    }
   }
   const plan = mojang.planLibraries(version);
   const libJobs = plan.jobs.filter(j => !(fs.existsSync(j.dest) && (j.size == null || fs.statSync(j.dest).size === j.size)));
@@ -123,21 +122,16 @@ async function prepare(inst, account, settings, report) {
   let game;
   if (version.arguments && version.arguments.game) game = expandArgs(version.arguments.game, vars, features);
   else game = (version.minecraftArguments || '').split(' ').filter(Boolean).map(a => substitute(a, vars));
+  if (extraGame.length) game.push(...extraGame);
 
   // Linux/Wayland: optionally run the game as a native Wayland window through the system GLFW
   // (avoids XWayland crashes such as SIGSEGV in XCheckTypedWindowEvent on Hyprland).
-  const wantWayland = process.platform === 'linux' && (inst.nativeWayland ?? settings.nativeWayland) && !!process.env.WAYLAND_DISPLAY;
-  const usesGlfw = (version.libraries || []).some(l => /^org\.lwjgl:lwjgl-glfw:3/.test(l.name));
-  let glfwArg = null;
-  if (wantWayland && usesGlfw) {
-    const lib = systemGlfw();
-    if (!lib) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or turn Native Wayland off in the instance settings.');
-    glfwArg = `-Dorg.lwjgl.glfw.libname=${lib}`;
-  }
+  const glfwArg = waylandGlfwArg(inst, settings, version.libraries);
 
   const mem = Math.max(512, Number(inst.memory || settings.memory || 4096));
   const userJvm = [`-Xmx${mem}M`, `-Xms${Math.min(mem, 1024)}M`, ...PERF_FLAGS, '-Dlog4j2.formatMsgNoLookups=true'];
   if (glfwArg) userJvm.push(glfwArg);
+  if (extraJvm.length) userJvm.push(...extraJvm.map(a => substitute(a, vars)));
   const extra = `${settings.jvmArgs || ''} ${inst.jvmArgs || ''}`.trim();
   if (extra) userJvm.push(...extra.split(/\s+/));
 
@@ -146,13 +140,40 @@ async function prepare(inst, account, settings, report) {
     if (!fs.existsSync(res)) fs.cpSync(assetInfo.virtualDir, res, { recursive: true });
   }
 
-  return { java, args: [...userJvm, ...jvm, version.mainClass, ...game], cwd: gameDir, versionId: version.id };
+  return { java, args: [...userJvm, ...jvm, version.mainClass, ...game], cwd: gameDir, versionId: version.id, envVars: inst.envVars || '' };
+}
+
+/**
+ * Native Wayland: point LWJGL at our shim, which loads the system GLFW but skips the window-icon and
+ * window-position calls that Wayland can't do (old Minecraft treats those errors as fatal).
+ */
+function waylandGlfwArg(inst, settings, libraries) {
+  const want = process.platform === 'linux' && (inst.nativeWayland ?? settings.nativeWayland) && !!process.env.WAYLAND_DISPLAY;
+  const usesGlfw = (libraries || []).some(l => /^org\.lwjgl3?:lwjgl-glfw:3|^org\.lwjgl:lwjgl-glfw/.test(l.name));
+  if (!want || !usesGlfw) return null;
+  if (!systemGlfw()) throw new Error('Native Wayland needs the system GLFW library. Install it (on Arch: sudo pacman -S glfw) or turn Native Wayland off in the instance settings.');
+  return `-Dorg.lwjgl.glfw.libname=${glfwShim() || systemGlfw()}`;
+}
+function glfwShim() {
+  const name = 'libmcl-glfw-wayland.so';
+  const c = [process.resourcesPath && path.join(process.resourcesPath, 'native', name), path.join(__dirname, '../../native/linux-x64', name)];
+  return c.find(p => p && fs.existsSync(p)) || null;
 }
 
 function systemGlfw() {
   if (process.platform !== 'linux') return null;
   const c = ['/usr/lib/libglfw.so.3', '/usr/lib/libglfw.so', '/usr/lib64/libglfw.so.3', '/usr/lib/x86_64-linux-gnu/libglfw.so.3', '/usr/local/lib/libglfw.so.3'];
   return c.find(p => fs.existsSync(p)) || null;
+}
+
+/** "KEY=value" lines → object. */
+function parseEnv(text) {
+  const out = {};
+  for (const line of String(text || '').split(/\r?\n/)) {
+    const m = /^\s*([A-Za-z_][A-Za-z0-9_]*)\s*=(.*)$/.exec(line);
+    if (m) out[m[1]] = m[2].trim();
+  }
+  return out;
 }
 
 function hasCommand(cmd) {
@@ -165,6 +186,12 @@ function start(prep, settings, hooks) {
   ensure(P.logs);
   const env = { ...process.env };
   for (const k of Object.keys(env)) if (k.startsWith('ELECTRON_') || k === 'CHROME_DESKTOP' || k === 'GDK_BACKEND') delete env[k];
+  if (process.platform === 'linux') {
+    // NVIDIA's "threaded optimizations" crash Minecraft (with Sodium, and in libX11 under XWayland).
+    // Sodium recommends turning them off for Minecraft only, which is what this does.
+    if (settings.nvidiaThreadedFix !== false && env.__GL_THREADED_OPTIMIZATIONS == null) env.__GL_THREADED_OPTIMIZATIONS = '0';
+  }
+  Object.assign(env, parseEnv(settings.envVars), parseEnv(prep.envVars));
   let cmd = prep.java, args = prep.args;
   if (settings.gamemode !== false && hasCommand('gamemoderun')) { args = [cmd, ...args]; cmd = 'gamemoderun'; }
   const proc = spawn(cmd, args, { cwd: prep.cwd, env, detached: false, windowsHide: false, stdio: ['ignore', 'pipe', 'pipe'] });
@@ -186,4 +213,4 @@ function start(prep, settings, hooks) {
   return proc;
 }
 
-module.exports = { systemGlfw, prepare, start, resolveVersion, expandArgs, substitute, hasCommand };
+module.exports = { systemGlfw, glfwShim, waylandGlfwArg, parseEnv, PERF_FLAGS, prepare, start, resolveVersion, expandArgs, substitute, hasCommand };

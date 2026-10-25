@@ -27,11 +27,12 @@ const modrinth = require('./modrinth');
 const curseforge = require('./curseforge');
 const packs = require('./packs');
 const integrity = require('./integrity');
+const javaSel = require('./java');
 const launch = require('./launch');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'mcl', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
-const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', font: 'onest', fontCustom: '', scale: 1, nativeWayland: false };
+const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', font: 'onest', fontCustom: '', scale: 1, nativeWayland: false, nvidiaThreadedFix: true };
 function getSettings() {
   const s = { ...DEFAULT_SETTINGS, ...readJson(P.settings, {}) };
   if (!/^#[0-9a-f]{6}$/i.test(s.accent)) s.accent = DEFAULT_SETTINGS.accent;
@@ -154,7 +155,10 @@ async function launchInstance(instId, opts = {}) {
       if (s.state === 'starting' && /Backend library:|Sound engine started|OpenAL initialized|Created: \d+x\d+x\d+ minecraft:textures|Created: \d+x\d+ textures-atlas|Reloading ResourceManager/.test(line)) {
         clearTimeout(readyTimer); markRunning();
       }
-      if (process.env.MCL_TEST_EXIT_AFTER_READY && /Sound engine started|Created: \d+x\d+x\d+ minecraft:textures|Created: \d+x\d+ textures-atlas/.test(line)) {
+      if (process.env.MCL_TEST_READY_PATTERN && new RegExp(process.env.MCL_TEST_READY_PATTERN).test(line)) {
+        clearTimeout(readyTimer); markRunning();
+        setTimeout(() => { try { s.proc.kill('SIGTERM'); } catch {} }, 3000);
+      } else if (process.env.MCL_TEST_EXIT_AFTER_READY && /Sound engine started|Created: \d+x\d+x\d+ minecraft:textures|Created: \d+x\d+ textures-atlas/.test(line)) {
         setTimeout(() => { try { s.proc.kill('SIGTERM'); } catch {} }, 3000);
       }
     },
@@ -175,7 +179,7 @@ async function launchInstance(instId, opts = {}) {
       if (hidden || !win || win.isDestroyed()) createWindow({ page: 'instance', id: instId, tab: 'logs' });
       else send('session', sessionInfo(s));
       if (process.env.MCL_TEST_RESULT) {
-        fs.writeFileSync(process.env.MCL_TEST_RESULT, JSON.stringify({ code, reachedRunning: hidden || s.lines.some(l => /Sound engine started|Backend library/.test(l)), started: s.lines.some(l => /Setting user:|Loading Minecraft .* with Fabric/.test(l)), hidden, lines: s.lines.length, tail: s.lines.slice(-40) }, null, 2));
+        fs.writeFileSync(process.env.MCL_TEST_RESULT, JSON.stringify({ code, reachedRunning: hidden || s.lines.some(l => /Sound engine started|Backend library/.test(l)), started: s.lines.some(l => /Setting user:|Loading Minecraft .* with Fabric/.test(l)), sawWindow: s.lines.some(l => /Sound engine started|Created: \d+x\d+x\d+ minecraft:textures|textures-atlas/.test(l)), glfwError: s.lines.find(l => /GLFW error/.test(l)) || null, readyPattern: !!process.env.MCL_TEST_READY_PATTERN && s.lines.some(l => new RegExp(process.env.MCL_TEST_READY_PATTERN).test(l)), fmlStarted: s.lines.some(l => /Forge Mod Loader version|ModLauncher running|Loading Minecraft .* with Fabric/.test(l)), hidden, lines: s.lines.length, tail: s.lines.slice(-40) }, null, 2));
         setTimeout(() => app.quit(), 4000);
       }
     },
@@ -352,6 +356,13 @@ const api = {
   },
   packFromDownloads: (id) => integrity.fromFolder(id, app.getPath('downloads')),
   packForget: (id, paths) => integrity.forget(id, paths),
+  javaOptions: () => javaSel.options(),
+  javaTest: (p) => javaSel.test(p),
+  pickJava: async () => {
+    const r = await dialog.showOpenDialog(win, { title: 'Choose a Java executable', properties: ['openFile'], filters: process.platform === 'win32' ? [{ name: 'Java', extensions: ['exe'] }] : [] });
+    return r.canceled ? null : r.filePaths[0] || null;
+  },
+  prismComponents: (id) => require('./prism').components(id),
   waylandInfo: () => ({ linux: process.platform === 'linux', wayland: !!process.env.WAYLAND_DISPLAY, glfw: launch.systemGlfw() }),
   exportCandidates: (id) => packs.exportCandidates(id),
   exportPack: async (id, { format, include, name, version, summary }) => {
@@ -446,6 +457,18 @@ async function runScreenshotTour(dir) {
     await wait(2500);
     fs.writeFileSync(path.join(dir, 'font-nunito.png'), (await win.webContents.capturePage()).toPNG());
     await win.webContents.executeJavaScript(`Theme.applyFont('onest')`);
+  }
+  const second = process.env.MCL_TEST_SHOT_INST2 && instances.list().find(i => i.id === process.env.MCL_TEST_SHOT_INST2);
+  if (second) {
+    await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); location.hash = '#instance/${second.id}/mods'; 0`);
+    await wait(4000);
+    fs.writeFileSync(path.join(dir, 'second-mods.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`location.hash = '#instance/${second.id}/settings'; 0`);
+    await wait(4000);
+    fs.writeFileSync(path.join(dir, 'second-settings.png'), (await win.webContents.capturePage()).toPNG());
+    await win.webContents.executeJavaScript(`(document.querySelector('.settings-wrap .section:nth-child(3)') || document.body).scrollIntoView(); 0`);
+    await wait(1200);
+    fs.writeFileSync(path.join(dir, 'second-settings-java.png'), (await win.webContents.capturePage()).toPNG());
   }
   // light theme + another accent
   await win.webContents.executeJavaScript(`document.querySelectorAll('.scrim').forEach(s => s.remove()); Theme.apply('light', '#5aa9f0'); location.hash = '#library'`);

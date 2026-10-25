@@ -1,9 +1,11 @@
-McLauncher 0.4.0
+McLauncher 0.5.0
 
-- **Edit config files in the launcher**: in an instance's Files tab, pick any config (JSON, TOML, properties, txt…) to edit it, then Save (Ctrl+S). JSON is checked as you type, unsaved changes are guarded, and logs stay read-only.
-- **Font and text size**: choose Onest, Inter, Figtree, Nunito, your system font, or any installed font; plus four text sizes. Fonts are now loaded in a way that also works where the bundled font previously failed to load (some Arch setups showed a serif fallback).
-- **Import anything**: one Import button for Modrinth `.mrpack`, CurseForge zips (Fabric, Forge, NeoForge), Prism Launcher/MultiMC exports and instance folders, McLauncher backups — also when the pack sits inside an extra folder in the zip. Any other zip or folder with mods and configs can be imported too: McLauncher guesses the loader and Minecraft version from the mods and lets you confirm them.
-- **Modpack file checks**: McLauncher remembers every file a modpack needs. Files that fail to download or that CurseForge won't hand out are fetched from Modrinth when the same file exists there. Anything still missing is listed with its download page and target folder — drop the downloaded files on the dialog, or let McLauncher pick them up from your Downloads folder. Play checks this first, and "Check modpack files" is in each instance's menu.
-- **Native Wayland option (Linux)**: run Minecraft as a native Wayland window through the system GLFW. This avoids XWayland crashes such as SIGSEGV in libX11 `XCheckTypedWindowEvent` on Hyprland. The crash screen offers it in one click.
+- **Pick the Java for each instance**: Settings → Java lets you choose Automatic, a Java version McLauncher downloads for you (8, 17, 21, 25…), any Java found on your computer, or a custom path (with a Test button). Instances also get their own environment variables.
+- **Prism Launcher / MultiMC packs with custom components**: packs such as GT New Horizons (Java 17+) that replace LWJGL and the launch setup with their own patches now import and run as the pack intends. Their component list shows in the instance settings, and a compatible Java (17–25 for GTNH) is picked automatically.
+- **Prism pictures**: imported Prism/MultiMC packs keep their icon (e.g. GTNH).
+- **Native Wayland works on older Minecraft**: McLauncher now includes a small GLFW shim, so 1.20.x no longer fails with "GLFW error 65548: The platform does not support setting the window icon".
+- **NVIDIA crash fix (Linux)**: NVIDIA threaded optimizations are turned off for Minecraft (as Sodium recommends). This addresses the SIGSEGV in libX11 `XCheckTypedWindowEvent` under XWayland. It can be turned off in Settings.
+- **App icon on Linux**: the package now installs the icon in all standard sizes, so it shows in Hyprland, launchers and taskbars.
+- Fixed the white square where two scrollbars meet in the config editor.
 
 Install: see the README for Arch Linux and Windows instructions.
