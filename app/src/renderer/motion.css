@@ -1,0 +1,82 @@
+/*
+ * Motion. Everything here only runs with Settings → Appearance → Animations on (data-motion="on").
+ * One easing family for the whole app: quick out, soft landing.
+ */
+:root { --ease: cubic-bezier(.2, .8, .2, 1); --ease-spring: cubic-bezier(.2, .9, .3, 1.18); }
+
+/* ---------- page changes ---------- */
+.page-stage { min-height: 100%; }
+:root[data-motion="on"] .page-enter { animation: pageIn .34s var(--ease) both; }
+:root[data-motion="on"] #main.page-leave > * { animation: pageOut .12s ease-in both; }
+@keyframes pageIn { from { opacity: 0; transform: translateY(10px) scale(.996); filter: blur(2px); } }
+@keyframes pageOut { to { opacity: 0; transform: translateY(-6px); } }
+
+/* instance tabs: only the tab body moves, in the direction you went */
+:root[data-motion="on"] .stage-tab .inst-body > div:last-child { animation: tabIn .28s var(--ease) both; }
+@keyframes tabIn { from { opacity: 0; transform: translateX(var(--tab-dir, 14px)); } }
+.tabs { position: relative; }
+.tab-ink { position: absolute; bottom: -1px; left: 0; height: 2px; border-radius: 2px; background: var(--accent); pointer-events: none; }
+:root[data-motion="on"] .tab-ink { transition: transform .32s var(--ease), width .32s var(--ease); }
+.tabs.has-ink button.on { border-bottom-color: transparent; }
+
+/* hero picture lands with a little spring */
+:root[data-motion="on"] .page-enter .hero .pic { animation: popIn .5s var(--ease-spring) .04s both; }
+:root[data-motion="on"] .page-enter .hero h1, :root[data-motion="on"] .page-enter .hero .meta { animation: riseIn .45s var(--ease) .08s both; }
+:root[data-motion="on"] .page-enter .hero .actions { animation: riseIn .45s var(--ease) .14s both; }
+@keyframes popIn { from { opacity: 0; transform: scale(.86) translateY(8px); } }
+@keyframes riseIn { from { opacity: 0; transform: translateY(10px); } }
+
+/* ---------- lists coming in ---------- */
+:root[data-motion="on"] .stagger > * { animation: itemIn .4s var(--ease) both; animation-delay: calc(min(var(--i, 0), 18) * 24ms); }
+@keyframes itemIn { from { opacity: 0; transform: translateY(10px); } }
+
+/* loading placeholders */
+.skeleton-row { display: flex; align-items: center; gap: 14px; padding: 10px 14px; min-height: 60px; border-top: 1px solid var(--line); }
+.skeleton-row:first-child { border-top: 0; }
+.skeleton-row .grow { flex: 1; display: flex; flex-direction: column; gap: 7px; }
+.sk { border-radius: 6px; background: linear-gradient(90deg, var(--raised) 0%, var(--hover) 45%, var(--raised) 90%); background-size: 220% 100%; }
+:root[data-motion="on"] .sk { animation: shimmer 1.3s linear infinite; }
+@keyframes shimmer { from { background-position: 120% 0; } to { background-position: -120% 0; } }
+.skeleton-result { display: flex; gap: 16px; padding: 14px; border: 1px solid var(--line); border-radius: var(--radius-m); background: var(--panel); }
+
+/* ---------- controls ---------- */
+:root[data-motion="on"] .btn { transition: background .16s, border-color .16s, box-shadow .22s, transform .12s var(--ease), color .16s; }
+:root[data-motion="on"] .btn:active:not(:disabled) { transform: scale(.965); }
+:root[data-motion="on"] .tile .art { transition: transform .26s var(--ease), box-shadow .26s var(--ease); }
+:root[data-motion="on"] .tile:hover .art { transform: translateY(-4px); }
+:root[data-motion="on"] .result { transition: transform .2s var(--ease), border-color .2s, box-shadow .2s; }
+:root[data-motion="on"] .result:hover { transform: translateY(-2px); }
+:root[data-motion="on"] .item, :root[data-motion="on"] .file-row { transition: background .15s; }
+:root[data-motion="on"] .nav a, :root[data-motion="on"] .side-inst, :root[data-motion="on"] .tabs button, :root[data-motion="on"] .segmented button, :root[data-motion="on"] .radio-list button { transition: background .18s, color .18s, box-shadow .18s; }
+:root[data-motion="on"] .switch span, :root[data-motion="on"] .switch span::after { transition: background .2s, transform .28s var(--ease-spring); }
+:root[data-motion="on"] .swatch, :root[data-motion="on"] .style-card, :root[data-motion="on"] .theme-card { transition: transform .2s var(--ease), box-shadow .2s; }
+:root[data-motion="on"] .swatch:hover { transform: scale(1.1); }
+:root[data-motion="on"] .style-card:hover, :root[data-motion="on"] .theme-card:not(:disabled):hover { transform: translateY(-2px); }
+:root[data-motion="on"] .item.off { transition: opacity .2s; }
+:root[data-motion="on"] .done-pop svg { animation: donePop .45s var(--ease-spring); }
+@keyframes donePop { 0% { transform: scale(.4); opacity: 0; } 100% { transform: scale(1); opacity: 1; } }
+
+/* ---------- dialogs, drawer, toasts ---------- */
+:root[data-motion="on"] .scrim { animation: fade .18s ease-out; }
+:root[data-motion="on"] .modal { animation: modalIn .28s var(--ease-spring); }
+:root[data-motion="on"] .drawer { animation: drawerIn .32s var(--ease); }
+:root[data-motion="on"] .scrim.closing { animation: fadeOut .16s ease-in forwards; }
+:root[data-motion="on"] .scrim.closing .modal { animation: modalOut .16s ease-in forwards; }
+:root[data-motion="on"] .scrim.closing .drawer { animation: drawerOut .2s ease-in forwards; }
+@keyframes modalIn { from { opacity: 0; transform: translateY(14px) scale(.95); } }
+@keyframes modalOut { to { opacity: 0; transform: translateY(8px) scale(.97); } }
+@keyframes drawerIn { from { opacity: .3; transform: translateX(40px); } }
+@keyframes drawerOut { to { opacity: 0; transform: translateX(40px); } }
+@keyframes fadeOut { to { opacity: 0; } }
+:root[data-motion="on"] .task { animation: taskIn .34s var(--ease-spring); }
+:root[data-motion="on"] .task.leaving { animation: taskOut .22s ease-in forwards; }
+@keyframes taskIn { from { opacity: 0; transform: translateX(30px) scale(.96); } }
+@keyframes taskOut { to { opacity: 0; transform: translateX(30px); } }
+:root[data-motion="on"] .task .bar i { transition: width .35s var(--ease); }
+
+/* ---------- switching styles: colours crossfade ---------- */
+:root.style-switching, :root.style-switching * { transition: background-color .45s ease, color .45s ease, border-color .45s ease, box-shadow .45s ease !important; }
+
+/* rows leaving a list */
+:root[data-motion="on"] .item.leaving { animation: rowOut .24s ease-in forwards; overflow: hidden; }
+@keyframes rowOut { to { opacity: 0; transform: translateX(24px); max-height: 0; min-height: 0; padding-top: 0; padding-bottom: 0; } }

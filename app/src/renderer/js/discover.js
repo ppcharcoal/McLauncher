@@ -95,7 +95,7 @@ Pages.discover = async (main, route) => {
   let searchSeq = 0;
   async function search() {
     const seq = ++searchSeq;
-    results.replaceChildren(h('div.loading', h('span.spinner')));
+    results.replaceChildren(...U.skeleton(5, 'result'));
     pager.replaceChildren();
     let res;
     try {
@@ -109,6 +109,7 @@ Pages.discover = async (main, route) => {
     if (seq !== searchSeq) return;
     if (!res.hits.length) { results.replaceChildren(h('div.empty', h('h3', 'No results'), h('p', 'Try other words, another Minecraft version, or the other source.'))); return; }
     results.replaceChildren(...res.hits.map(renderHit));
+    U.stagger(results);
     const page = Math.floor(DISC.offset / 20) + 1, pages = Math.max(1, Math.ceil(res.total / 20));
     pager.replaceChildren(
       h('button.btn.small', { disabled: page <= 1, on: { click: () => { DISC.offset -= 20; search(); document.getElementById('main').scrollTop = 0; } } }, 'Previous'),
@@ -148,7 +149,7 @@ Pages.discover = async (main, route) => {
       installed.set(String(p.id), true);
       const extra = Array.isArray(r) && r.length > 1 ? ` with ${r.length - 1} required ${r.length - 1 === 1 ? 'dependency' : 'dependencies'}` : '';
       C.toast(`Installed ${p.title}${extra}`);
-      if (btn) { btn.replaceChildren(U.svg('check'), 'Installed'); btn.classList.remove('primary'); }
+      if (btn) { btn.replaceChildren(U.svg('check'), 'Installed'); btn.classList.remove('primary'); btn.classList.add('done-pop'); }
     } catch (e) {
       C.toast(e.message, 'err');
       if (btn) { btn.disabled = false; btn.replaceChildren(U.svg('download'), 'Install'); }
@@ -177,11 +178,11 @@ Pages.discover = async (main, route) => {
 
   async function openDrawer(p) {
     const scrim = h('div.scrim.drawer-scrim');
-    const close = () => { scrim.remove(); document.removeEventListener('keydown', onKey); };
+    const close = () => { U.leave(scrim, 'closing', 210); document.removeEventListener('keydown', onKey); };
     const onKey = (e) => { if (e.key === 'Escape') close(); };
     document.addEventListener('keydown', onKey);
     scrim.addEventListener('mousedown', e => { if (e.target === scrim) close(); });
-    const dbody = h('div.dbody', h('div.loading', h('span.spinner')));
+    const dbody = h('div.dbody', h('div.list', ...U.skeleton(4)));
     scrim.append(h('aside.drawer', { role: 'dialog', 'aria-label': p.title },
       h('div.dhead', p.icon ? h('img', { src: p.icon, alt: '' }) : h('div'), h('div.grow', { style: { flex: 1, minWidth: 0 } },
         h('h2', p.title), h('div.row', { style: { gap: '6px', marginTop: '6px', flexWrap: 'wrap' } }, DISC.type === 'mod' ? U.envBadge(p.env, p.isLibrary) : null, h('span.faint', { style: { fontSize: '13px' } }, `${U.num(p.downloads)} downloads`))),

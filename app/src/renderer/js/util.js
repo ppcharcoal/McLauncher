@@ -176,4 +176,28 @@ U.envBadge = (env, isLibrary) => {
   if (isLibrary) out.push(U.h('span.badge.library', 'Library'));
   return out;
 };
+// ---------- motion helpers ----------
+U.motion = () => document.documentElement.dataset.motion !== 'off';
+U.wait = (ms) => new Promise(r => setTimeout(r, ms));
+/** Animate the children of `el` in one after another. */
+U.stagger = (el) => {
+  if (!el) return el;
+  [...el.children].forEach((c, i) => c.style.setProperty('--i', i));
+  el.classList.remove('stagger'); void el.offsetWidth; el.classList.add('stagger');
+  return el;
+};
+/** Remove an element after its leave animation (class `leaving` / `closing`). */
+U.leave = (el, cls = 'leaving', ms = 220) => {
+  if (!el || !el.isConnected) return;
+  if (!U.motion()) return el.remove();
+  el.classList.add(cls);
+  setTimeout(() => el.remove(), ms);
+};
+/** Shimmering placeholder rows while a list loads. */
+U.skeleton = (n = 6, kind = 'row') => Array.from({ length: n }, (_, i) => kind === 'result'
+  ? U.h('div.skeleton-result', U.h('div.sk', { style: { width: '64px', height: '64px', borderRadius: '12px', flex: 'none' } }),
+      U.h('div', { style: { flex: 1, display: 'flex', flexDirection: 'column', gap: '9px', paddingTop: '4px' } },
+        U.h('div.sk', { style: { width: `${30 + (i * 17) % 30}%`, height: '14px' } }), U.h('div.sk', { style: { width: '80%', height: '10px' } }), U.h('div.sk', { style: { width: '55%', height: '10px' } })))
+  : U.h('div.skeleton-row', U.h('div.sk', { style: { width: '40px', height: '40px', borderRadius: '8px', flex: 'none' } }),
+      U.h('div.grow', U.h('div.sk', { style: { width: `${28 + (i * 13) % 34}%`, height: '12px' } }), U.h('div.sk', { style: { width: `${45 + (i * 7) % 30}%`, height: '9px' } }))));
 window.U = U;

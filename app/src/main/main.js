@@ -11,10 +11,8 @@ if (process.platform === 'linux') {
   app.commandLine.appendSwitch('ozone-platform-hint', 'auto');
   app.commandLine.appendSwitch('enable-features', 'WaylandWindowDecorations');
 }
-// The keyring entry that protects saved accounts is named after the app at startup. Keep the
-// pre-rename name until that is set up, then switch to "cairn" (window class / Wayland app id).
 app.setName('mclauncher');
-if (IS_WIN) app.setAppUserModelId('io.github.ppcharcoal.mclauncher'); // kept from before the rename (installer upgrade path)
+if (IS_WIN) app.setAppUserModelId('io.github.ppcharcoal.mclauncher');
 
 if (!app.requestSingleInstanceLock()) { app.quit(); process.exit(0); }
 
@@ -34,7 +32,7 @@ const launch = require('./launch');
 
 protocol.registerSchemesAsPrivileged([{ scheme: 'mcl', privileges: { standard: true, secure: true, supportFetchAPI: true, stream: true } }]);
 
-const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', scale: 1, nativeWayland: 'auto', nvidiaThreadedFix: true, style: 'minimal' };
+const DEFAULT_SETTINGS = { memory: 4096, javaPath: '', jvmArgs: '', closeOnLaunch: true, gamemode: true, curseforgeKey: '', showSnapshots: false, theme: 'system', accent: '#5cc2a8', scale: 1, nativeWayland: 'auto', nvidiaThreadedFix: true, style: 'minimal', motion: true };
 function getSettings() {
   const s = { ...DEFAULT_SETTINGS, ...readJson(P.settings, {}) };
   if (!/^#[0-9a-f]{6}$/i.test(s.accent)) s.accent = DEFAULT_SETTINGS.accent;
@@ -60,11 +58,11 @@ function createWindow(route) {
   applyNativeTheme({ aero: 'light', darkmatter: 'dark' }[settings.style] || settings.theme);
   win = new BrowserWindow({
     width: bounds.width, height: bounds.height, minWidth: 900, minHeight: 600,
-    title: 'Cairn', backgroundColor: windowBg(), show: false, frame: false,
+    title: 'McLauncher', backgroundColor: windowBg(), show: false, frame: false,
     icon: path.join(__dirname, '../../build/icon.png'),
     webPreferences: { preload: path.join(__dirname, '../preload.js'), sandbox: true, contextIsolation: true, spellcheck: false },
   });
-  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent, style: settings.style || 'minimal', scale: String(settings.scale || 1) } });
+  win.loadFile(path.join(__dirname, '../renderer/index.html'), { query: { theme: settings.theme, accent: settings.accent, style: settings.style || 'minimal', motion: String(settings.motion !== false), scale: String(settings.scale || 1) } });
   win.once('ready-to-show', () => { win.show(); focusOnHyprland(); });
   win.on('close', () => { try { const [width, height] = win.getSize(); writeJson(path.join(P.root, 'window.json'), { width, height }); } catch {} });
   win.on('closed', () => { win = null; });
@@ -128,14 +126,14 @@ async function launchInstance(instId, opts = {}) {
       return launch.prepare(inst, account, settings, report);
     });
   } catch (e) {
-    s.state = 'failed'; s.code = -1; s.lines.push(`[Cairn] ${e.message}`);
+    s.state = 'failed'; s.code = -1; s.lines.push(`[McLauncher] ${e.message}`);
     send('session', sessionInfo(s));
     throw e;
   }
   const stamp = new Date().toISOString().replace(/[:.]/g, '-');
   s.logFile = path.join(P.logs, `${instId}_${stamp}.log`);
   const stream = fs.createWriteStream(s.logFile);
-  stream.write(`# Cairn ${netUtil.VERSION} — ${inst.name} (Minecraft ${inst.mcVersion}${inst.loader === 'fabric' ? ', Fabric ' + inst.loaderVersion : ''})\n`);
+  stream.write(`# McLauncher ${netUtil.VERSION} — ${inst.name} (Minecraft ${inst.mcVersion}${inst.loader === 'fabric' ? ', Fabric ' + inst.loaderVersion : ''})\n`);
   stream.write(`# Java: ${prep.java}\n`);
   s.state = 'starting';
   instances.update(instId, { lastPlayed: Date.now() });
@@ -305,7 +303,7 @@ const api = {
     fs.renameSync(tmp, p);
     return true;
   },
-  identify: (id) => runTask('Identifying files', () => modrinth.identifyInstance(id)),
+  identify: (id) => modrinth.identifyInstance(id), // quiet, runs in the background
   checkUpdates: (id) => runTask('Checking for updates', () => modrinth.checkUpdates(id)),
   applyUpdates: (id, list) => runTask('Updating', async (report) => {
     for (const u of list) await modrinth.installVersion(id, u.version, u.kind, { title: u.title, icon: u.icon }, new Set(), report);
@@ -513,7 +511,6 @@ app.on('window-all-closed', () => {
 });
 
 app.whenReady().then(() => {
-  app.setName('cairn');
   netUtil.useElectronNet(net);
   auth.init({ safeStorage });
   curseforge.setKey(getSettings().curseforgeKey);

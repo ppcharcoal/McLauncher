@@ -1,56 +1,70 @@
-# Renders the Cairn app icon: three stacked blocks on a teal tile.
-from PIL import Image, ImageDraw, ImageFilter
-def make(N, out, bg=True):
-    SS=4; W=N*SS
-    img=Image.new('RGBA',(W,W),(0,0,0,0))
-    if bg:
-        grad=Image.new('RGBA',(W,W)); gd=ImageDraw.Draw(grad)
-        top=(112,218,190); bot=(28,112,98)
-        for y in range(W):
-            t=y/(W-1); gd.line([(0,y),(W,y)],fill=tuple(int(top[i]*(1-t)+bot[i]*t) for i in range(3))+(255,))
-        mask=Image.new('L',(W,W),0); pad=int(W*0.06)
-        ImageDraw.Draw(mask).rounded_rectangle([pad,pad,W-pad,W-pad],radius=int(W*0.22),fill=255)
-        img.paste(grad,(0,0),mask)
-    s=W/64
-    P=lambda pts:[(x*s,y*s) for x,y in pts]
-    # cubes: (cx, bottom_y, half_width)
-    # stack: each cube sits centred on the top face of the one below (slight offsets, like stones)
-    ws=[12.0, 8.6, 5.6]; offs=[0, -1.3, 0.9]
-    raw=[]; by=0.0
-    for i,w in enumerate(ws):
-        h=w*1.12; q=w*0.5
-        if i>0:
-            pw=ws[i-1]; ph=pw*1.12; pq=pw*0.5
-            pty=raw[-1][1]-ph-pq
-            by=pty+q
-        raw.append((offs[i], by, w))
-    topmost=raw[-1][1]-ws[-1]*1.12-ws[-1]   # top vertex of the top cube
-    height=0-topmost
-    y0=32+height/2   # centre the stack vertically
-    cubes=[(32+o, y0+b, w) for o,b,w in raw]
-    shadow=Image.new('RGBA',(W,W),(0,0,0,0)); sd=ImageDraw.Draw(shadow)
-    def faces(cx,by,w):
-        h=w*1.12; q=w*0.5
-        ty=by-h-q  # top-face center
-        top=[(cx,ty-q),(cx+w,ty),(cx,ty+q),(cx-w,ty)]
-        left=[(cx-w,ty),(cx,ty+q),(cx,ty+q+h),(cx-w,ty+h)]
-        right=[(cx,ty+q),(cx+w,ty),(cx+w,ty+h),(cx,ty+q+h)]
-        return top,left,right
-    for cx,by,w in cubes:
-        t,l,r=faces(cx,by,w); sd.polygon(P(l+r[1:3]),fill=(6,45,38,110))
-    shadow=shadow.filter(ImageFilter.GaussianBlur(W*0.018)); img.alpha_composite(shadow,(int(W*0.006),int(W*0.022)))
-    d=ImageDraw.Draw(img,'RGBA')
-    for cx,by,w in cubes:
-        t,l,r=faces(cx,by,w)
-        g=0.55
-        d.polygon(P(t),fill=(255,255,255,255))
-        d.polygon(P([(l[0][0],l[0][1]+g),(l[1][0]-g*0.6,l[1][1]+g*0.4),(l[2][0]-g*0.6,l[2][1]),(l[3][0],l[3][1])]),fill=(214,244,236,255))
-        d.polygon(P([(r[0][0]+g*0.6,r[0][1]+g*0.4),(r[1][0],r[1][1]+g),(r[2][0],r[2][1]),(r[3][0]+g*0.6,r[3][1])]),fill=(156,220,204,255))
-    img.resize((N,N),Image.LANCZOS).save(out)
-if __name__=='__main__':
-    import os
-    os.makedirs('build/icons', exist_ok=True)
-    make(1024, 'build/icon.png')
-    # Linux icon theme sizes (hicolor has no 1024x1024 folder)
-    for n in [16, 24, 32, 48, 64, 128, 256, 512]:
-        make(n, f'build/icons/{n}x{n}.png')
+# McLauncher icon, in the same family as Aurora's: rounded tile, diagonal three-colour gradient,
+# flat white symbol (an isometric block split into three faces by thin gaps).
+from PIL import Image, ImageDraw, ImageChops
+import math
+
+STOPS = [(0.0, (132, 214, 96)), (0.5, (36, 190, 158)), (1.0, (64, 152, 236))]  # grass → teal → sky
+
+def grad_color(t):
+    for (t0, c0), (t1, c1) in zip(STOPS, STOPS[1:]):
+        if t0 <= t <= t1:
+            f = (t - t0) / (t1 - t0)
+            return tuple(int(c0[i] + (c1[i] - c0[i]) * f) for i in range(3))
+    return STOPS[-1][1]
+
+def make(N, out):
+    SS = 4; W = N * SS
+    # gradient along the main diagonal
+    small = 256
+    g = Image.new('RGB', (small, small))
+    gp = g.load()
+    for y in range(small):
+        for x in range(small):
+            gp[x, y] = grad_color((x + y) / (2 * (small - 1)))
+    g = g.resize((W, W), Image.BICUBIC).convert('RGBA')
+    tile = Image.new('L', (W, W), 0)
+    pad = round(W * 0.035); rad = round(W * 0.235)
+    ImageDraw.Draw(tile).rounded_rectangle([pad, pad, W - pad, W - pad], radius=rad, fill=255)
+    img = Image.new('RGBA', (W, W), (0, 0, 0, 0))
+    img.paste(g, (0, 0), tile)
+
+    # white block: rounded hexagon
+    s = W / 64
+    cx, cy, w = 32 * s, 33 * s, 15.5 * s
+    h = w * 1.16; q = w * 0.5
+    ty = cy - (h + q) / 2 + q * 0  # vertical centring of the whole hexagon
+    top_y = cy - (q + h / 2 + q / 2) + q
+    # hexagon points (top, upper-right, lower-right, bottom, lower-left, upper-left)
+    T = (cx, cy - q - h / 2); UR = (cx + w, cy - h / 2); LR = (cx + w, cy + h / 2)
+    B = (cx, cy + q + h / 2); LL = (cx - w, cy + h / 2); UL = (cx - w, cy - h / 2)
+    C = (cx, cy - h / 2 + q)  # centre vertex where the three faces meet
+    glyph = Image.new('L', (W, W), 0); gd = ImageDraw.Draw(glyph)
+    r = 2.2 * s  # corner rounding
+    # shrink then grow by r with round joins → rounded corners
+    def shrink(p):
+        return (cx + (p[0] - cx) * (1 - r / w * 0.9), cy + (p[1] - cy) * (1 - r / (h * 0.9)))
+    hexa = [shrink(p) for p in (T, UR, LR, B, LL, UL)]
+    gd.polygon(hexa, fill=255)
+    gd.line(hexa + [hexa[0]], fill=255, width=int(r * 2), joint='curve')
+    for p in hexa: gd.ellipse([p[0] - r, p[1] - r, p[0] + r, p[1] + r], fill=255)
+    # gaps between faces: Y shape from the centre vertex
+    gap = 1.25 * s
+    cut = Image.new('L', (W, W), 0); cd = ImageDraw.Draw(cut)
+    for a, b in [(C, (UL[0] - 3 * s, UL[1] - 1.5 * s)), (C, (UR[0] + 3 * s, UR[1] - 1.5 * s)), (C, (B[0], B[1] + 4 * s))]:
+        cd.line([a, b], fill=255, width=int(gap * 2))
+    glyph = ImageChops.subtract(glyph, cut)
+    white = Image.new('RGBA', (W, W), (255, 255, 255, 255))
+    img.paste(white, (0, 0), glyph)
+    img = img.resize((N, N), Image.LANCZOS)
+    img.save(out)
+
+if __name__ == '__main__':
+    import os, sys
+    if len(sys.argv) > 1:
+        make(int(sys.argv[1]), sys.argv[2])
+    else:
+        os.makedirs('build/icons', exist_ok=True)
+        make(1024, 'build/icon.png')
+        # Linux icon theme sizes (hicolor has no 1024x1024 folder)
+        for n in [16, 24, 32, 48, 64, 128, 256, 512]:
+            make(n, f'build/icons/{n}x{n}.png')

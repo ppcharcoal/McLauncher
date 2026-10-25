@@ -34,20 +34,45 @@ function parseRoute() {
   return { page, id, tab };
 }
 
+let renderSeq = 0;
 async function render() {
   const main = document.getElementById('main');
+  const seq = ++renderSeq;
   if (App.current && App.current.cleanup) { try { App.current.cleanup(); } catch {} }
+  App.current = { cleanup: null };
   const route = parseRoute();
+  const prev = App.prevRoute;
+  App.prevRoute = route;
+  // Switching tabs inside the same instance only animates the tab body.
+  App.sameInstance = !!(prev && prev.page === 'instance' && route.page === 'instance' && prev.id === route.id);
   App.renderSidebar();
   const page = window.Pages[route.page] || window.Pages.library;
-  main.replaceChildren();
-  main.scrollTop = 0;
-  App.current = { cleanup: null };
+  const motion = U.motion();
+  const stage = U.h('div.page-stage');
+  if (App.sameInstance) {
+    const order = ['mods', 'resourcepacks', 'shaderpacks', 'saves', 'screenshots', 'files', 'logs', 'settings'];
+    stage.style.setProperty('--tab-dir', (order.indexOf(route.tab || 'mods') >= order.indexOf(prev.tab || 'mods') ? 14 : -14) + 'px');
+  }
+  // Fade the old page out while the new one starts loading.
+  const leaving = motion && main.firstChild && !App.sameInstance ? (main.classList.add('page-leave'), U.wait(110)) : null;
+  let cleanupP;
   try {
-    const cleanup = await page(main, route);
-    App.current.cleanup = cleanup || null;
+    cleanupP = Promise.resolve(page(stage, route));
+    // Show the new page as soon as it has content, or after a short moment at most.
+    await Promise.race([cleanupP.catch(() => {}), U.wait(motion ? 240 : 0)]);
+  } catch {}
+  if (leaving) await leaving;
+  if (seq !== renderSeq) { cleanupP && cleanupP.then(c => c && c()).catch(() => {}); return; }
+  const keepScroll = App.sameInstance ? main.scrollTop : 0;
+  main.classList.remove('page-leave');
+  main.replaceChildren(stage);
+  main.scrollTop = Math.min(keepScroll, 280);
+  stage.classList.add(App.sameInstance ? 'stage-tab' : 'page-enter');
+  try {
+    const cleanup = await cleanupP;
+    if (seq === renderSeq) App.current.cleanup = cleanup || null; else if (cleanup) cleanup();
   } catch (e) {
-    main.replaceChildren(U.h('div.page', U.h('div.empty', U.h('h3', 'This page could not load'), U.h('p', e.message), U.h('a.btn', { href: '#library' }, 'Back to library'))));
+    if (seq === renderSeq) stage.replaceChildren(U.h('div.page', U.h('div.empty', U.h('h3', 'This page could not load'), U.h('p', e.message), U.h('a.btn', { href: '#library' }, 'Back to library'))));
   }
 }
 

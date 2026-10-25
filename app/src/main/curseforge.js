@@ -137,7 +137,7 @@ async function importZip(zip, { name, iconUrl, source, report = () => {} } = {})
     const v = rest.join('-');
     if (kind === 'fabric') { loader = 'fabric'; loaderVersion = v; }
     else if (kind === 'forge' || kind === 'neoforge') { loader = kind; loaderVersion = await require('./forge').fullVersion(kind, manifest.minecraft.version, v); }
-    else throw new Error(`This modpack needs ${kind}. Cairn supports Fabric, Forge, NeoForge and vanilla.`);
+    else throw new Error(`This modpack needs ${kind}. McLauncher supports Fabric, Forge, NeoForge and vanilla.`);
   }
   const inst = instances.create({ name: name || manifest.name || 'Modpack', mcVersion: manifest.minecraft.version, loader, loaderVersion, source: source || { type: 'curseforge-zip', name: manifest.name, version: manifest.version } });
   try {

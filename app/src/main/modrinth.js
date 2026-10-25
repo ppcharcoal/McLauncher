@@ -188,7 +188,10 @@ async function identifyInstance(instId) {
       if (!fs.statSync(full).isFile()) continue;
       const rel = `${folder}/${f.replace(/\.disabled$/, '')}`;
       if (content.files[rel] && content.files[rel].projectId) continue;
-      files.push({ rel, full });
+      // Already looked up and not on Modrinth: don't hash it again unless the file changed.
+      const size = fs.statSync(full).size;
+      if (content.tried && content.tried[rel] === size) continue;
+      files.push({ rel, full, size });
     }
   }
   if (!files.length) return 0;
@@ -204,6 +207,8 @@ async function identifyInstance(instId) {
     content.files[f.rel] = { ...(content.files[f.rel] || {}), source: (content.files[f.rel] || {}).source || 'modrinth', projectId: v.project_id, versionId: v.id, title: p.title || f.rel, iconUrl: p.icon_url || null, slug: p.slug, env: envLabel(p.client_side, p.server_side), sha1: f.sha1 };
     n++;
   }
+  content.tried = content.tried || {};
+  for (const f of files) if (!found[f.sha1]) content.tried[f.rel] = f.size;
   instances.writeContent(instId, content);
   return n;
 }
@@ -251,7 +256,7 @@ async function readMrpackIndex(zip) {
 async function importMrpack(zip, { name, iconUrl, source, report = () => {} } = {}) {
   const index = await readMrpackIndex(zip);
   const deps = index.dependencies || {};
-  if (deps['quilt-loader']) throw new Error('This modpack needs Quilt. Cairn supports Fabric, Forge, NeoForge and vanilla.');
+  if (deps['quilt-loader']) throw new Error('This modpack needs Quilt. McLauncher supports Fabric, Forge, NeoForge and vanilla.');
   const forge = require('./forge');
   let loader = 'vanilla', loaderVersion = null;
   if (deps['fabric-loader']) { loader = 'fabric'; loaderVersion = deps['fabric-loader']; }

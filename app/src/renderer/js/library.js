@@ -8,11 +8,6 @@ Pages.play = async (inst) => {
     await C.signIn();
     if (!App.account) return;
   }
-  // Modpacks: make sure every file is in place before starting.
-  try {
-    const check = await U.call('packVerify', inst.id);
-    if (check.missing.length && !(await C.missingFiles(inst.id, check.missing, { forLaunch: true }))) return;
-  } catch {}
   try { await U.call('launch', inst.id); App.refreshInstances(); }
   catch (e) { C.toast(e.message, 'err'); App.refreshInstances(); }
 };
@@ -42,7 +37,7 @@ Pages.library = async (main) => {
         h('button.btn.primary', { on: { click: () => Pages.newInstanceFlow() } }, U.svg('plus'), 'New instance'),
         h('button.btn', { on: { click: () => App.go('#discover/modpack') } }, 'Browse modpacks')));
   } else {
-    content = h('div.lib-grid', list.map(i => {
+    content = U.stagger(h('div.lib-grid', list.map(i => {
       const running = i.session && ['running', 'starting', 'preparing'].includes(i.session.state);
       return h('div.tile', { tabindex: 0, on: { click: () => App.go(`#instance/${i.id}`), keydown: (e) => { if (e.key === 'Enter') App.go(`#instance/${i.id}`); } } },
         h('div.art', U.instPic(i),
@@ -51,7 +46,7 @@ Pages.library = async (main) => {
         h('h3', i.name),
         h('p', `${U.loaderLabel(i)} ${i.mcVersion}`),
         h('p.faint', { style: { fontSize: '12px' } }, i.lastPlayed ? `Played ${U.ago(i.lastPlayed)}` : 'Not played yet'));
-    }));
+    })));
   }
   main.append(h('div.page', head, content, list.length ? h('p.drop-hint', 'Tip: drop a .mrpack or CurseForge .zip anywhere to import it.') : null));
 };

@@ -59,7 +59,8 @@ a { color: var(--amethyst); text-decoration: none; }
 textarea::-webkit-scrollbar-corner, .logbox::-webkit-scrollbar-corner, .preview::-webkit-scrollbar-corner { background: transparent; }
 svg { width: 18px; height: 18px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; flex: none; }
 .pixel { image-rendering: pixelated; }
-@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+/* Animations are a setting (Settings → Appearance); off = no motion at all. */
+:root[data-motion="off"] *, :root[data-motion="off"] *::before, :root[data-motion="off"] *::after { transition: none !important; animation: none !important; }
 
 /* ---------- title bar ---------- */
 #titlebar { position: fixed; top: 0; left: 0; right: 0; height: 36px; display: flex; z-index: 50; pointer-events: none; }

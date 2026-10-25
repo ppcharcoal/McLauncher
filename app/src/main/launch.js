@@ -104,9 +104,9 @@ async function prepare(inst, account, settings, report) {
     auth_xuid: account.xuid || '',
     user_type: account.offline ? 'legacy' : 'msa',
     user_properties: '{}',
-    version_type: 'Cairn',
+    version_type: 'McLauncher',
     natives_directory: nativesDir,
-    launcher_name: 'Cairn',
+    launcher_name: 'McLauncher',
     launcher_version: VERSION,
     classpath: cp,
     classpath_separator: SEP,
@@ -223,7 +223,7 @@ function start(prep, settings, hooks) {
   };
   proc.stdout.on('data', c => feed('out', c));
   proc.stderr.on('data', c => feed('err', c));
-  proc.on('error', e => { hooks.onLine(`[Cairn] Could not start Java: ${e.message}`, true); hooks.onExit(-1); });
+  proc.on('error', e => { hooks.onLine(`[McLauncher] Could not start Java: ${e.message}`, true); hooks.onExit(-1); });
   proc.on('exit', (code, signal) => {
     if (buf.out) hooks.onLine(buf.out, false);
     if (buf.err) hooks.onLine(buf.err, true);

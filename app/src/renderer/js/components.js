@@ -6,7 +6,8 @@ const { h } = U;
 C.modal = ({ title, subtitle, body, actions = [], wide = false, onClose }) => {
   const root = document.getElementById('modal-root');
   const scrim = h('div.scrim');
-  const close = (v) => { scrim.remove(); document.removeEventListener('keydown', onKey); onClose && onClose(v); };
+  let closed = false;
+  const close = (v) => { if (closed) return; closed = true; U.leave(scrim, 'closing', 170); document.removeEventListener('keydown', onKey); onClose && onClose(v); };
   const onKey = (e) => { if (e.key === 'Escape') close(null); };
   document.addEventListener('keydown', onKey);
   scrim.addEventListener('mousedown', (e) => { if (e.target === scrim) close(null); });
@@ -23,6 +24,9 @@ C.modal = ({ title, subtitle, body, actions = [], wide = false, onClose }) => {
   return { close, el: modal };
 };
 
+/** Close the dialog on top (used by menu buttons that open something else). */
+C.closeTop = () => { const all = [...document.querySelectorAll('#modal-root .scrim:not(.closing)')]; U.leave(all[all.length - 1], 'closing', 170); };
+
 C.confirm = (title, text, { ok = 'Confirm', danger = false } = {}) => new Promise(res => {
   C.modal({ title, body: h('p.muted', { style: { margin: 0 } }, text), onClose: (v) => res(!!v), actions: [
     { label: 'Cancel', value: false },
@@ -35,7 +39,7 @@ const taskEls = new Map();
 C.toast = (text, kind = 'ok', ms = 4200) => {
   const el = h('div.task' + (kind === 'err' ? '.err' : '.ok'), h('b', kind === 'err' ? 'Something went wrong' : text), kind === 'err' ? h('small', text) : null);
   document.getElementById('tasks').append(el);
-  setTimeout(() => el.remove(), kind === 'err' ? 8000 : ms);
+  setTimeout(() => U.leave(el), kind === 'err' ? 8000 : ms);
 };
 C.onTask = (t) => {
   let el = taskEls.get(t.id);
@@ -51,13 +55,13 @@ C.onTask = (t) => {
   bar.querySelector('i').style.width = t.done ? '100%' : t.progress != null ? Math.round(t.progress * 100) + '%' : '';
   el.classList.toggle('err', !!t.error);
   el.classList.toggle('ok', t.done && !t.error);
-  if (t.done) { bar.style.display = 'none'; setTimeout(() => { el.remove(); taskEls.delete(t.id); }, t.error ? 9000 : 2500); }
+  if (t.done) { bar.style.display = 'none'; setTimeout(() => { U.leave(el); taskEls.delete(t.id); }, t.error ? 9000 : 2500); }
 };
 
 // ---------- CurseForge files that need a manual download ----------
 // ---------- modpack files that are missing ----------
 /**
- * Shows files a modpack still needs. The player can open each download page, let Cairn look in
+ * Shows files a modpack still needs. The player can open each download page, let McLauncher look in
  * the Downloads folder, pick or drop the downloaded files, or continue without them.
  * Resolves true when the player chooses to play anyway.
  */
@@ -68,7 +72,7 @@ C.missingFiles = (instId, items, { forLaunch = false } = {}) => new Promise((res
   const drop = h('div.dropzone', U.svg('download'), h('span', 'Drop downloaded files here'));
   function draw() {
     summary.textContent = missing.length
-      ? `${missing.length} file${missing.length === 1 ? ' is' : 's are'} missing. Their authors only allow downloads from their website, or the download failed. Download each one, then drop it here or use the buttons below — Cairn puts it in the right folder.`
+      ? `${missing.length} file${missing.length === 1 ? ' is' : 's are'} missing. Their authors only allow downloads from their website, or the download failed. Download each one, then drop it here or use the buttons below — McLauncher puts it in the right folder.`
       : 'All modpack files are in place.';
     list.replaceChildren(...missing.map(it => h('div.item',
       h('div.txt', h('b', it.title), h('small', `${it.fileName}  →  ${it.folder}`)),
@@ -130,7 +134,7 @@ C.importDialog = () => new Promise((resolve) => {
   };
   const m = C.modal({
     title: 'Import a modpack',
-    subtitle: 'Modrinth .mrpack, CurseForge .zip (Fabric, Forge, NeoForge), Prism Launcher / MultiMC exports and instance folders, Cairn backups, or any zip or folder with mods and configs.',
+    subtitle: 'Modrinth .mrpack, CurseForge .zip (Fabric, Forge, NeoForge), Prism Launcher / MultiMC exports and instance folders, McLauncher backups, or any zip or folder with mods and configs.',
     body: h('div.import-choices',
       h('button.import-choice', { on: { click: () => choose('file') } }, U.svg('file'), h('b', 'Choose a file'), h('span', '.mrpack or .zip')),
       h('button.import-choice', { on: { click: () => choose('folder') } }, U.svg('folder'), h('b', 'Choose a folder'), h('span', 'Prism/MultiMC instance or a .minecraft folder'))),
@@ -279,8 +283,8 @@ C.exportDialog = async (inst) => {
     seg.children[0].classList.toggle('on', f === 'mrpack');
     seg.children[1].classList.toggle('on', f === 'zip');
     fmtHint.textContent = f === 'mrpack'
-      ? 'Mods found on Modrinth are linked, everything else is bundled. Opens in Cairn, Prism, Modrinth App and others.'
-      : 'Everything you tick is copied into the archive, including the picture. Import it again in Cairn.';
+      ? 'Mods found on Modrinth are linked, everything else is bundled. Opens in McLauncher, Prism, Modrinth App and others.'
+      : 'Everything you tick is copied into the archive, including the picture. Import it again in McLauncher.';
     metaFields.style.display = f === 'mrpack' ? '' : 'none';
   }
   const checks = cands.map(c => {

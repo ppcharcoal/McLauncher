@@ -67,22 +67,23 @@
   --gloss: linear-gradient(180deg, rgba(255,255,255,.75) 0%, rgba(255,255,255,.22) 48%, rgba(255,255,255,0) 50%, rgba(255,255,255,.22) 100%);
 }
 :root[data-style="aero"] body {
-  background:
-    radial-gradient(130% 38% at 25% 118%, #6fc443 0 58%, transparent 60%),
-    radial-gradient(110% 34% at 85% 120%, #88d35a 0 56%, transparent 58%),
-    linear-gradient(180deg, #4fb8ea 0%, #93d8f6 32%, #d4f0fc 60%, #eefaff 78%, #c9edb5 100%);
-  background-attachment: fixed;
+  background: #2a8be0 url("backgrounds/aero.webp") center / cover no-repeat fixed;
 }
-:root[data-style="aero"] body::before {
-  content: ''; position: fixed; inset: 0; pointer-events: none; z-index: 0;
-  background:
-    radial-gradient(circle at 8% 22%, rgba(255,255,255,.9) 0 3px, rgba(255,255,255,.25) 4px 30px, rgba(255,255,255,.75) 31px, transparent 33px),
-    radial-gradient(circle at 92% 14%, rgba(255,255,255,.9) 0 4px, rgba(255,255,255,.22) 5px 46px, rgba(255,255,255,.7) 47px, transparent 49px),
-    radial-gradient(circle at 70% 64%, rgba(255,255,255,.9) 0 2px, rgba(255,255,255,.2) 3px 18px, rgba(255,255,255,.7) 19px, transparent 21px),
-    radial-gradient(circle at 30% 80%, rgba(255,255,255,.85) 0 3px, rgba(255,255,255,.2) 4px 24px, rgba(255,255,255,.7) 25px, transparent 27px),
-    radial-gradient(circle at 52% 8%, rgba(255,255,255,.8) 0 2px, rgba(255,255,255,.18) 3px 14px, rgba(255,255,255,.6) 15px, transparent 17px),
-    radial-gradient(60% 30% at 50% -5%, rgba(255,255,255,.55), transparent 70%);
+/* Text that sits directly on the wallpaper is white; inside glass panels it is navy again. */
+:root[data-style="aero"] #main { --text: #ffffff; --muted: rgba(255,255,255,.9); --faint: rgba(255,255,255,.78); color: var(--text); }
+:root[data-style="aero"] #main :is(.page-head, .tabs, .toolbar > .muted, .drop-hint, .hero .meta > span, .tile h3, .tile p, .pager, .filters h4, .crumbs) { text-shadow: 0 1px 3px rgba(0,45,110,.55); }
+:root[data-style="aero"] :is(.section, .list, .result, .world, .preview, .target, .empty, .task, .modal, .drawer, .style-card, .theme-card, .import-choice, .logbox, .btn, .input, .segmented, .badge, .radio-list, .filters select, .quick) {
+  --text: #0b2a40; --muted: #3c6680; --faint: #6c92a9; color: var(--text); text-shadow: none;
 }
+:root[data-style="aero"] .radio-list button { color: #fff; text-shadow: 0 1px 3px rgba(0,45,110,.55); }
+:root[data-style="aero"] .radio-list button.on, :root[data-style="aero"] .radio-list button:hover { background: rgba(255,255,255,.85); color: #0b2a40; text-shadow: none; }
+:root[data-style="aero"] .tabs button { color: rgba(255,255,255,.88); }
+:root[data-style="aero"] .tabs button.on, :root[data-style="aero"] .tabs button:hover { color: #fff; }
+:root[data-style="aero"] .tabs { border-bottom-color: rgba(255,255,255,.45); }
+/* No blurred picture behind the instance header: the wallpaper shows through. */
+:root[data-style="aero"] .hero .backdrop { display: none; }
+:root[data-style="aero"] .hero::after { display: none; }
+:root[data-style="aero"] .hero .pic { box-shadow: 0 0 0 3px rgba(255,255,255,.9), 0 12px 30px rgba(0,50,110,.35); }
 :root[data-style="aero"] #sidebar {
   background: linear-gradient(180deg, rgba(255,255,255,.82), rgba(225,245,255,.6));
   backdrop-filter: blur(14px);
@@ -99,7 +100,7 @@
 :root[data-style="aero"] .tile .art { box-shadow: 0 0 0 2px rgba(255,255,255,.95), 0 10px 22px rgba(25,105,160,.25); }
 :root[data-style="aero"] .tile .art::after { content: ''; position: absolute; inset: 0 0 55% 0; background: linear-gradient(180deg, rgba(255,255,255,.45), rgba(255,255,255,0)); pointer-events: none; }
 :root[data-style="aero"] .tile:hover .art { box-shadow: 0 0 0 2px var(--accent), 0 12px 26px rgba(25,105,160,.3); }
-:root[data-style="aero"] .page-head h1, :root[data-style="aero"] .hero h1 { color: #08385a; text-shadow: 0 1px 0 rgba(255,255,255,.85), 0 2px 12px rgba(255,255,255,.6); }
+:root[data-style="aero"] .page-head h1, :root[data-style="aero"] .hero h1 { color: #fff; text-shadow: 0 2px 6px rgba(0,45,110,.55), 0 0 24px rgba(255,255,255,.35); }
 :root[data-style="aero"] .input, :root[data-style="aero"] .segmented { background: linear-gradient(180deg, #f2f9fd, #fff); border-color: #a8d0e6; box-shadow: inset 0 1px 2px rgba(20,90,140,.12); }
 :root[data-style="aero"] .btn {
   border-radius: 999px; color: var(--text); border: 1px solid #94c4de;
@@ -129,7 +130,6 @@
   background: var(--gloss), linear-gradient(180deg, rgba(255,255,255,.9), color-mix(in srgb, var(--accent) 18%, white));
   box-shadow: 0 0 0 1px rgba(140,195,225,.7), inset 0 1px 0 #fff; color: var(--text);
 }
-:root[data-style="aero"] .tabs { border-bottom-color: rgba(140,195,225,.6); }
 :root[data-style="aero"] .badge { background: linear-gradient(180deg, #fff, #e3f2fa); box-shadow: 0 0 0 1px #b9dcef; }
 :root[data-style="aero"] .logbox { color: var(--text); }
 :root[data-style="aero"] .scrim { backdrop-filter: blur(3px); }
@@ -173,7 +173,12 @@
     radial-gradient(1.4px 1.4px at 53px 240px, rgba(207,216,255,1) 50%, transparent 51%);
   background-size: 173px 197px, 173px 197px, 173px 197px, 251px 229px, 251px 229px, 251px 229px, 331px 307px, 331px 307px, 331px 307px, 419px 389px, 419px 389px, 419px 389px, 547px 503px, 547px 503px, 547px 503px;
 }
-:root[data-style="darkmatter"] #sidebar { background: rgba(5,6,12,.82); border-right: 1px solid var(--edge); box-shadow: 1px 0 24px var(--glow); }
+:root[data-style="darkmatter"] #sidebar {
+  background: linear-gradient(90deg, rgba(3,4,9,.9) 0%, rgba(3,4,9,.72) 70%, rgba(3,4,9,.25) 100%);
+  backdrop-filter: blur(14px) saturate(140%);
+  border-right: 0; box-shadow: none;
+}
+:root[data-style="darkmatter"] .side-bottom { border-top-color: rgba(255,255,255,.05); }
 :root[data-style="darkmatter"] :is(.section, .list, .result, .world, .preview, .target, .empty, .task, .theme-card, .style-card, .font-card, .import-choice, .logbox, .modal, .drawer) {
   background: color-mix(in srgb, var(--panel) 95%, transparent);
   border: 1px solid var(--edge);
@@ -253,3 +258,17 @@
 @media (prefers-reduced-transparency: reduce) {
   :root[data-style] :is(.section, .list, .result, .modal, .drawer, #sidebar) { backdrop-filter: none !important; }
 }
+
+/* Aero: things that sit on the wallpaper get their own glass so they stay readable over clouds */
+:root[data-style="aero"] .tile { padding: 8px 8px 10px; border-radius: 22px; background: linear-gradient(180deg, rgba(255,255,255,.78), rgba(235,248,255,.55)); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.95); box-shadow: inset 0 1px 0 #fff, 0 8px 22px rgba(0,60,130,.18); --text: #0b2a40; --muted: #3c6680; --faint: #6c92a9; color: var(--text); }
+:root[data-style="aero"] #main .tile h3, :root[data-style="aero"] #main .tile p { text-shadow: none; }
+:root[data-style="aero"] .tile .art { border-radius: 16px; }
+:root[data-style="aero"] .tabs { background: linear-gradient(180deg, rgba(255,255,255,.8), rgba(232,247,255,.6)); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,.95); border-radius: 999px; padding: 4px; gap: 2px; box-shadow: inset 0 1px 0 #fff, 0 6px 18px rgba(0,60,130,.16); margin: 0 0 22px; }
+:root[data-style="aero"] #main .tabs { text-shadow: none; }
+:root[data-style="aero"] .tabs button { color: #2d5a78; border-radius: 999px; border-bottom: 0; margin: 0; padding: 8px 14px; }
+:root[data-style="aero"] .tabs button:hover { color: #0b2a40; background: rgba(255,255,255,.7); }
+:root[data-style="aero"] .tabs button.on { color: var(--accent-ink); background: var(--gloss), var(--accent); box-shadow: inset 0 1px 0 rgba(255,255,255,.7), 0 2px 6px color-mix(in srgb, var(--accent) 45%, transparent); }
+:root[data-style="aero"] .tabs .tab-ink { display: none; }
+:root[data-style="aero"] #main :is(.toolbar > .muted, .drop-hint, .page-head p, .hero .meta > span) { text-shadow: 0 1px 2px rgba(0,35,90,.85), 0 0 12px rgba(0,35,90,.55); }
+:root[data-style="aero"] #main :is(.drop-hint, .toolbar > .muted) { display: inline-block; width: auto; color: #0b2a40; text-shadow: none; background: rgba(255,255,255,.72); backdrop-filter: blur(8px); padding: 3px 11px; border-radius: 999px; border: 1px solid rgba(255,255,255,.95); }
+:root[data-style="aero"] .toolbar .search { --faint: #6c92a9; }

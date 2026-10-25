@@ -9,6 +9,7 @@ const KIND_TYPE = { mods: 'mod', resourcepacks: 'resourcepack', shaderpacks: 'sh
 const KIND_NOUN = { mods: 'mod', resourcepacks: 'resource pack', shaderpacks: 'shader pack' };
 const KIND_ICON = { mods: 'cube', resourcepacks: 'layers', shaderpacks: 'sun' };
 const LIVE = ['running', 'starting', 'preparing'];
+const identifiedThisSession = new Set();
 const MODDED = (i) => ['fabric', 'forge', 'neoforge'].includes(i.loader);
 
 Pages.instance = async (main, route) => {
@@ -52,10 +53,10 @@ Pages.instance = async (main, route) => {
   }
   function moreMenu() {
     C.modal({ title: inst.name, body: h('div', { style: { display: 'flex', flexDirection: 'column', gap: '8px' } },
-      h('button.btn', { on: { click: async () => { const d = await U.call('duplicateInstance', inst.id); document.querySelector('.scrim').remove(); await App.refreshInstances(); App.go(`#instance/${d.id}`); } } }, U.svg('copy'), 'Duplicate instance'),
-      h('button.btn', { on: { click: () => { document.querySelector('.scrim').remove(); C.exportDialog(inst); } } }, U.svg('upload'), 'Export modpack'),
+      h('button.btn', { on: { click: async () => { const d = await U.call('duplicateInstance', inst.id); C.closeTop(); await App.refreshInstances(); App.go(`#instance/${d.id}`); } } }, U.svg('copy'), 'Duplicate instance'),
+      h('button.btn', { on: { click: () => { C.closeTop(); C.exportDialog(inst); } } }, U.svg('upload'), 'Export modpack'),
       h('button.btn', { on: { click: async () => {
-        document.querySelector('.scrim').remove();
+        C.closeTop();
         try {
           const r = await U.call('packRepair', inst.id);
           const v = await U.call('packVerify', inst.id);
@@ -64,9 +65,9 @@ Pages.instance = async (main, route) => {
           else C.missingFiles(inst.id, r.missing);
         } catch (e) { C.toast(e.message, 'err'); }
       } } }, U.svg('check'), 'Check modpack files'),
-      inst.iconUrl ? h('button.btn', { on: { click: async () => { await U.call('clearIcon', inst.id); document.querySelector('.scrim').remove(); refresh(); App.refreshInstances(); } } }, U.svg('image'), 'Remove picture') : null,
+      inst.iconUrl ? h('button.btn', { on: { click: async () => { await U.call('clearIcon', inst.id); C.closeTop(); refresh(); App.refreshInstances(); } } }, U.svg('image'), 'Remove picture') : null,
       h('button.btn.danger', { on: { click: async () => {
-        document.querySelector('.scrim').remove();
+        C.closeTop();
         if (await C.confirm(`Delete ${inst.name}?`, 'The instance, its mods and its worlds are moved to the trash.', { ok: 'Delete instance', danger: true })) {
           try { await U.call('deleteInstance', inst.id); await App.refreshInstances(); App.go('#library'); } catch (e) { C.toast(e.message, 'err'); }
         }
@@ -78,7 +79,28 @@ Pages.instance = async (main, route) => {
   // ---------- tabs ----------
   const tabs = h('div.tabs', { role: 'tablist' }, TABS.map(([k, label]) => h('button' + (k === tab ? '.on' : ''), { role: 'tab', on: { click: () => App.go(`#instance/${inst.id}/${k}`) } }, label)));
   const body = h('div');
+  // Sliding underline under the active tab (moves from the previous tab when switching).
+  const ink = h('span.tab-ink');
+  tabs.append(ink); tabs.classList.add('has-ink');
+  const placeInk = (animate) => {
+    const btn = tabs.querySelector('button.on');
+    if (!btn) return;
+    if (!animate) ink.style.transition = 'none';
+    ink.style.width = btn.offsetWidth + 'px';
+    ink.style.transform = `translateX(${btn.offsetLeft}px)`;
+    if (!animate) { void ink.offsetWidth; ink.style.transition = ''; }
+    App.tabInk = { left: btn.offsetLeft, width: btn.offsetWidth };
+  };
   main.append(hero, h('div.inst-body', tabs, body));
+  requestAnimationFrame(() => {
+    if (App.sameInstance && App.tabInk) {
+      ink.style.transition = 'none';
+      ink.style.width = App.tabInk.width + 'px';
+      ink.style.transform = `translateX(${App.tabInk.left}px)`;
+      void ink.offsetWidth; ink.style.transition = '';
+      requestAnimationFrame(() => placeInk(true));
+    } else placeInk(false);
+  });
   const tabCleanup = await TAB_RENDER[tab](body, inst, { refresh });
   if (tabCleanup) cleanups.push(tabCleanup);
   return () => cleanups.forEach(f => f && f());
@@ -91,9 +113,10 @@ async function renderContentTab(body, inst, kind) {
   let filter = '';
   const listEl = h('div.list');
   const countEl = h('span.muted');
-  const draw = () => {
+  const updateCount = () => { countEl.textContent = `${items.length} ${KIND_NOUN[kind]}${items.length === 1 ? '' : 's'}${items.some(i => !i.enabled) ? `, ${items.filter(i => !i.enabled).length} turned off` : ''}`; };
+  const draw = (animate) => {
     const shown = items.filter(i => !filter || (i.title + ' ' + i.file).toLowerCase().includes(filter));
-    countEl.textContent = `${items.length} ${KIND_NOUN[kind]}${items.length === 1 ? '' : 's'}${items.some(i => !i.enabled) ? `, ${items.filter(i => !i.enabled).length} turned off` : ''}`;
+    updateCount();
     if (!items.length) {
       listEl.replaceChildren(h('div.empty', { style: { border: 0 } },
         h('h3', `No ${KIND_NOUN[kind]}s yet`),
@@ -102,22 +125,38 @@ async function renderContentTab(body, inst, kind) {
       return;
     }
     listEl.replaceChildren(...shown.map(it => {
+      let row;
       const ico = it.icon ? h('img.ico', { src: it.icon, alt: '', loading: 'lazy', on: { error: (e) => e.target.replaceWith(h('div.ico', U.svg(KIND_ICON[kind]))) } }) : h('div.ico', U.svg(KIND_ICON[kind]));
       const sw = h('label.switch', { title: it.enabled ? 'Turn off' : 'Turn on' },
-        h('input', { type: 'checkbox', checked: it.enabled, 'aria-label': `${it.title} enabled`, on: { change: async () => { try { await U.call('toggleContent', inst.id, kind, it.file); load(); } catch (e) { C.toast(e.message, 'err'); } } } }),
+        h('input', { type: 'checkbox', checked: it.enabled, 'aria-label': `${it.title} enabled`, on: { change: async (e) => {
+          try {
+            await U.call('toggleContent', inst.id, kind, it.file);
+            // Update in place: no list reload, so the switch animates smoothly.
+            it.enabled = !it.enabled;
+            it.file = it.enabled ? it.file.replace(/\.disabled$/, '') : it.file + '.disabled';
+            row.classList.toggle('off', !it.enabled);
+            updateCount();
+          } catch (err) { e.target.checked = it.enabled; C.toast(err.message, 'err'); }
+        } } }),
         h('span'));
-      return h('div.item' + (it.enabled ? '' : '.off'), ico,
+      row = h('div.item' + (it.enabled ? '' : '.off'), ico,
         h('div.txt', h('b', it.title), h('small', [it.modVersion, it.file].filter(Boolean).join('   '))),
         h('div.tags', U.envBadge(it.env === '*' ? null : it.env, false), it.source ? h('span.badge', it.source === 'curseforge' ? 'CurseForge' : 'Modrinth') : null),
         sw,
         h('button.btn.small.icon.ghost', { title: 'Delete', 'aria-label': `Delete ${it.title}`, on: { click: async () => {
           if (!(await C.confirm(`Delete ${it.title}?`, 'The file is moved to the trash.', { ok: 'Delete', danger: true }))) return;
-          await U.call('deleteContent', inst.id, kind, it.file); load();
+          await U.call('deleteContent', inst.id, kind, it.file);
+          items = items.filter(x => x !== it);
+          updateCount();
+          U.leave(row, 'leaving', 240);
+          if (!items.length) setTimeout(() => draw(), 260);
         } } }, U.svg('trash')));
+      return row;
     }));
+    if (animate) U.stagger(listEl);
     if (!shown.length) listEl.replaceChildren(h('div.empty', { style: { border: 0 } }, h('p', 'Nothing matches your search.')));
   };
-  async function load() { items = await U.call('content', inst.id, kind); draw(); }
+  async function load(animate) { items = await U.call('content', inst.id, kind); draw(animate); }
 
   listEl.addEventListener('dragover', e => { e.preventDefault(); listEl.classList.add('drop'); });
   listEl.addEventListener('dragleave', () => listEl.classList.remove('drop'));
@@ -136,9 +175,13 @@ async function renderContentTab(body, inst, kind) {
     h('button.btn', { on: { click: async () => { const n = await U.call('pickContentFiles', inst.id, kind); if (n) { C.toast(`Added ${n} file${n === 1 ? '' : 's'}`); load(); } } } }, U.svg('plus'), 'Add files'),
     h('button.btn.primary', { disabled: kind === 'mods' && !MODDED(inst), on: { click: () => App.go(`#discover/${KIND_TYPE[kind]}/${inst.id}`) } }, U.svg('search'), `Browse ${KIND_NOUN[kind]}s`));
   body.append(tools, listEl, h('p.drop-hint', `Drop ${kind === 'mods' ? '.jar' : '.zip'} files on the list to add them.`));
-  listEl.append(h('div.loading', h('span.spinner')));
-  await load();
-  if (items.some(i => !i.source)) U.call('identify', inst.id).then(n => { if (n) load(); }).catch(() => {});
+  listEl.append(...U.skeleton(7));
+  await load(true);
+  // Look up unknown files on Modrinth once per session, quietly.
+  if (items.some(i => !i.source) && !identifiedThisSession.has(inst.id)) {
+    identifiedThisSession.add(inst.id);
+    U.call('identify', inst.id).then(n => { if (n && listEl.isConnected) load(); }).catch(() => {});
+  }
 }
 
 async function checkUpdates(inst, reload) {
@@ -161,13 +204,13 @@ async function renderWorlds(body, inst) {
   body.append(h('div.toolbar', h('span.muted', `${worlds.length} world${worlds.length === 1 ? '' : 's'}`), h('div.spacer'),
     h('button.btn', { on: { click: () => U.call('openFolder', inst.id, 'saves') } }, U.svg('folder'), 'Open worlds folder')));
   if (!worlds.length) return body.append(h('div.empty', h('h3', 'No worlds yet'), h('p', 'Worlds you create in game appear here. You can also copy world folders into the worlds folder.')));
-  body.append(h('div.worlds', worlds.map(w => h('div.world',
+  body.append(U.stagger(h('div.worlds', worlds.map(w => h('div.world',
     w.icon ? h('img.shot', { src: w.icon, alt: '' }) : (() => { const c = U.blockArt(w.file, 16); c.classList.add('shot'); return c; })(),
     h('div.info', h('div', h('b', w.file), h('small', `Played ${U.ago(w.mtime)}`)),
       h('button.btn.small.icon.ghost', { title: 'Open folder', 'aria-label': `Open ${w.file} folder`, on: { click: () => U.call('openFolder', inst.id, `saves/${w.file}`) } }, U.svg('folder')),
       h('button.btn.small.icon.ghost', { title: 'Delete world', 'aria-label': `Delete ${w.file}`, on: { click: async () => {
         if (await C.confirm(`Delete ${w.file}?`, 'The world folder is moved to the trash.', { ok: 'Delete world', danger: true })) { await U.call('deleteContent', inst.id, 'saves', w.file); body.replaceChildren(); renderWorlds(body, inst); }
-      } } }, U.svg('trash')))))));
+      } } }, U.svg('trash'))))))));
 }
 
 async function renderShots(body, inst) {
@@ -176,7 +219,7 @@ async function renderShots(body, inst) {
   body.append(h('div.toolbar', h('span.muted', `${shots.length} screenshot${shots.length === 1 ? '' : 's'}`), h('div.spacer'),
     h('button.btn', { on: { click: () => U.call('openFolder', inst.id, 'screenshots') } }, U.svg('folder'), 'Open folder')));
   if (!shots.length) return body.append(h('div.empty', h('h3', 'No screenshots yet'), h('p', 'Press F2 in game to take one.')));
-  body.append(h('div.shots', shots.map(s => h('img', { src: s.icon, alt: s.file, loading: 'lazy', title: s.file, on: { click: () => U.call('openPath', inst.id, `screenshots/${s.file}`) } }))));
+  body.append(U.stagger(h('div.shots', shots.map(s => h('img', { src: s.icon, alt: s.file, loading: 'lazy', title: s.file, on: { click: () => U.call('openPath', inst.id, `screenshots/${s.file}`) } })))));
 }
 
 // ---------- file browser ----------
@@ -301,7 +344,7 @@ async function renderLogs(body, inst) {
   const box = h('div.logbox', { role: 'log', tabindex: 0 });
   let follow = true, filter = '', lines = [], liveMode = true;
   box.addEventListener('scroll', () => { follow = box.scrollTop + box.clientHeight >= box.scrollHeight - 30; });
-  const cls = (l) => /\b(ERROR|FATAL|Exception|Caused by)\b/.test(l) ? 'e' : /\bWARN\b/.test(l) ? 'w' : (l.startsWith('[Cairn]') || l.startsWith('[Cairn]')) || l.startsWith('# ') ? 'l' : '';
+  const cls = (l) => /\b(ERROR|FATAL|Exception|Caused by)\b/.test(l) ? 'e' : /\bWARN\b/.test(l) ? 'w' : (l.startsWith('[McLauncher]') || l.startsWith('[McLauncher]')) || l.startsWith('# ') ? 'l' : '';
   const lineEl = (l) => { const d = document.createElement('div'); const c = cls(l); if (c) d.className = c; d.textContent = l; return d; };
   function redraw() {
     const shown = filter ? lines.filter(l => l.toLowerCase().includes(filter)) : lines;

@@ -61,13 +61,25 @@
     }));
     return loaded[id];
   }
+  let switchTimer;
   function applyStyle(id) {
     const st = styleOf(id);
+    const root = document.documentElement;
+    if (root.dataset.style && root.dataset.style !== st.id && current.motion) {
+      // Crossfade colours when switching styles.
+      root.classList.add('style-switching');
+      clearTimeout(switchTimer);
+      switchTimer = setTimeout(() => root.classList.remove('style-switching'), 500);
+    }
     current.style = st.id;
     document.documentElement.dataset.style = st.id;
     loadBundled(st.font[0], st.font[1]);
     document.documentElement.style.setProperty('--font', `'${st.font[1]}', ${FALLBACK}`);
     apply();
+  }
+  function applyMotion(on) {
+    current.motion = on !== false && on !== 'false' && on !== '0';
+    document.documentElement.dataset.motion = current.motion ? 'on' : 'off';
   }
   function applyScale(scale) {
     const v = Number(scale) || 1;
@@ -77,8 +89,9 @@
 
   const q = new URLSearchParams(location.search);
   apply(q.get('theme') || 'system', q.get('accent') || ACCENTS[0][1]);
+  applyMotion(q.get('motion') ?? true);
   applyStyle(q.get('style') || 'minimal');
   applyScale(q.get('scale') || 1);
   const loadFont = (id) => { const st = styleOf(id); return loadBundled(st.font[0], st.font[1]); };
-  window.Theme = { apply, applyStyle, applyScale, loadFont, ACCENTS, STYLES, get: () => ({ ...current, resolved: resolved(), forcedMode: styleOf(current.style).mode }) };
+  window.Theme = { apply, applyStyle, applyScale, applyMotion, get motion() { return current.motion; }, loadFont, ACCENTS, STYLES, get: () => ({ ...current, resolved: resolved(), forcedMode: styleOf(current.style).mode }) };
 })();

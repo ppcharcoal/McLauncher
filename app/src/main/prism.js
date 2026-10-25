@@ -16,7 +16,7 @@ const mojang = require('./mojang');
 const instances = require('./instances');
 
 const META = 'https://meta.prismlauncher.org/v1';
-// Components Cairn can run natively. Anything else (or any custom patch) needs this engine.
+// Components McLauncher can run natively. Anything else (or any custom patch) needs this engine.
 const NATIVE_UIDS = new Set(['net.minecraft', 'org.lwjgl', 'org.lwjgl3', 'net.fabricmc.intermediary', 'net.fabricmc.fabric-loader', 'net.minecraftforge', 'net.neoforged']);
 
 function dir(instId) { return path.join(instances.dirOf(instId), 'prism'); }
@@ -132,7 +132,7 @@ async function resolve(inst, settings, report) {
   for (const c of comps) jsons.push(await componentJson(inst.id, c));
   const p = merge(jsons);
   if (!p.mainClass) throw new Error('The pack does not say how to start the game (no main class).');
-  if (p.jarMods.length) throw new Error('This pack uses jar mods, which Cairn does not support yet.');
+  if (p.jarMods.length) throw new Error('This pack uses jar mods, which McLauncher does not support yet.');
 
   // Java: the pack's compatible versions, unless the instance picks one.
   const majors = (p.compatibleJavaMajors || []).map(Number).filter(Boolean);
