@@ -19,8 +19,8 @@ A simple, fast Minecraft: Java Edition launcher for Linux (Arch first) and Windo
 
 ```bash
 # download and install the package from the latest release
-curl -LO https://github.com/ppcharcoal/McLauncher/releases/download/v0.7.0/mclauncher-0.7.0-x64.pacman
-sudo pacman -U ./mclauncher-0.7.0-x64.pacman
+curl -LO https://github.com/ppcharcoal/McLauncher/releases/download/v0.7.1/mclauncher-0.7.1-x64.pacman
+sudo pacman -U ./mclauncher-0.7.1-x64.pacman
 
 # optional: better in-game performance, and native Wayland game windows on Hyprland
 sudo pacman -S --needed gamemode glfw
@@ -35,14 +35,14 @@ Uninstall with `sudo pacman -R mclauncher`. Your instances live in `~/.local/sha
 
 ## Install on Windows
 
-Download **`mclauncher-0.7.0-setup.exe`** from the [latest release](https://github.com/ppcharcoal/McLauncher/releases/latest) and run it. Windows SmartScreen may warn that the app is unrecognized because it isn't code-signed — click **More info → Run anyway**.
+Download **`mclauncher-0.7.1-setup.exe`** from the [latest release](https://github.com/ppcharcoal/McLauncher/releases/latest) and run it. Windows SmartScreen may warn that the app is unrecognized because it isn't code-signed — click **More info → Run anyway**.
 
-Prefer no install? Use **`mclauncher-0.7.0-portable.exe`** instead. Data lives in `%APPDATA%\mclauncher`.
+Prefer no install? Use **`mclauncher-0.7.1-portable.exe`** instead. Data lives in `%APPDATA%\mclauncher`.
 
 Or from PowerShell:
 
 ```powershell
-Invoke-WebRequest https://github.com/ppcharcoal/McLauncher/releases/download/v0.7.0/mclauncher-0.7.0-setup.exe -OutFile mclauncher-setup.exe
+Invoke-WebRequest https://github.com/ppcharcoal/McLauncher/releases/download/v0.7.1/mclauncher-0.7.1-setup.exe -OutFile mclauncher-setup.exe
 .\mclauncher-setup.exe
 ```
 
@@ -51,8 +51,8 @@ Invoke-WebRequest https://github.com/ppcharcoal/McLauncher/releases/download/v0.
 Use the AppImage from the release page:
 
 ```bash
-chmod +x mclauncher-0.7.0-x86_64.AppImage
-./mclauncher-0.7.0-x86_64.AppImage
+chmod +x mclauncher-0.7.1-x86_64.AppImage
+./mclauncher-0.7.1-x86_64.AppImage
 ```
 
 ### Hyprland

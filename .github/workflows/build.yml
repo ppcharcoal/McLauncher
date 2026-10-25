@@ -116,6 +116,28 @@ jobs:
           WAYLAND_DISPLAY=$WL timeout -k 15 600 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox --ozone-platform=x11 > ../ci-out/launch-wayland.out 2>&1 || true
           grep -nE "GLFW|EGL|Wayland|wayland|Failed to create window|glfw|Exception" "$MCL_DATA_DIR"/logs/ci-wayland_*.log | head -40 || true
           node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, started:r.started, sawWindow:r.sawWindow, glfwError:r.glfwError, error:r.error}); if(r.glfwError && /65548/.test(r.glfwError)) process.exit(1); if(!r.sawWindow) console.log('::warning::Minecraft did not open a window on headless sway; the icon error did not occur')"
+      - name: Native Wayland with Forge 1.20.1 (Forge early window) under sway
+        if: always()
+        timeout-minutes: 14
+        env:
+          MCL_TEST_OFFLINE: CiPlayer
+          MCL_TEST_EXIT_AFTER_READY: '1'
+          MCL_TEST_LAUNCH: ci-forge
+          MCL_TEST_RESULT: ${{ github.workspace }}/launch-wayland-forge.json
+          LIBGL_ALWAYS_SOFTWARE: '1'
+        run: |
+          node -e "require('./src/main/instances').update('ci-forge', { nativeWayland: 'on' })"
+          export XDG_RUNTIME_DIR=$(ls -d /tmp/tmp.* 2>/dev/null | while read d; do ls "$d" 2>/dev/null | grep -qE '^wayland-[0-9]+$' && echo $d && break; done)
+          if [ -z "$XDG_RUNTIME_DIR" ]; then
+            export XDG_RUNTIME_DIR=$(mktemp -d) && chmod 700 "$XDG_RUNTIME_DIR"
+            (WLR_BACKENDS=headless WLR_LIBINPUT_NO_DEVICES=1 WLR_RENDERER=pixman sway -c /tmp/sway.cfg > ../ci-out/sway-forge.log 2>&1 &); sleep 5
+          fi
+          WL=$(ls "$XDG_RUNTIME_DIR" | grep -E '^wayland-[0-9]+$' | head -1)
+          echo "runtime=$XDG_RUNTIME_DIR display=$WL"
+          WAYLAND_DISPLAY=$WL timeout -k 15 600 xvfb-run -a -s "-screen 0 1600x1000x24 +extension GLX +render -noreset" npx electron . --no-sandbox --ozone-platform=x11 > ../ci-out/launch-wayland-forge.out 2>&1 || true
+          grep -nE "GLFW|Wayland|EARLYDISPLAY|crash" "$MCL_DATA_DIR"/logs/ci-forge_*.log | tail -20 || true
+          node -e "const r=require(process.env.MCL_TEST_RESULT); console.log({code:r.code, started:r.started, sawWindow:r.sawWindow, glfwError:r.glfwError}); if(r.glfwError) process.exit(1); if(!r.sawWindow) console.log('::warning::Forge did not reach the window under headless sway')"
+          node -e "require('./src/main/instances').update('ci-forge', { nativeWayland: null })"
       - name: GT New Horizons 2.8.4 (Java 17+ Prism pack) import and launch
         if: always()
         timeout-minutes: 30
