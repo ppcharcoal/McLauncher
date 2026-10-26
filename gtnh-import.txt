@@ -1,0 +1,2 @@
+downloaded 568 MB in 7 s
+imported in 5 s: {"id":"gtnh-2-8-4","name":"GTNH 2.8.4","prism":true,"loader":"forge","loaderVersion":"1.7.10-10.13.4.1614","icon":"icon.png","memory":4096,"components":["LWJGL 3 3.3.3","Minecraft with LWJGL3 1.7.10","LWJGL3ify Early Classpath 2.1.16","Forge-LWJGL3 10.13.4.1614","LWJGL3ify launch args 2.1.16"]}

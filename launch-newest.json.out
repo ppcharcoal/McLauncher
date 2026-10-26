@@ -1,0 +1,9 @@
+Downloading Electron binary...
+[3311:1026/183539.360024:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3311:1026/183539.405214:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3311:1026/183539.408977:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3311:1026/183539.409342:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[3311:1026/183539.411462:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[3340:1026/183541.404339:ERROR:gpu/command_buffer/service/shared_image/shared_image_manager.cc:275] SharedImageManager::ProduceSkia: Trying to produce a Skia representation from an incompatible backing: CompoundImageBacking
+[3340:1026/183541.404420:ERROR:gpu/command_buffer/service/raster_decoder.cc:1884] [.RendererRasterWorker-0x16fc00cebc00]GL ERROR :GL_INVALID_VALUE : CopySharedImage: unknown mailbox
+[3311:1026/183606.802871:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")

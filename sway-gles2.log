@@ -1,0 +1,4 @@
+00:00:00.001 [ERROR] [wlr] [render/wlr_renderer.c:279] Failed to find any DRM render node
+00:00:00.001 [ERROR] [wlr] [render/wlr_renderer.c:343] Cannot create GLES2 renderer: no DRM FD available
+00:00:00.001 [ERROR] [wlr] [render/wlr_renderer.c:423] Could not initialize renderer
+00:00:00.001 [ERROR] [sway/server.c:143] Failed to create renderer

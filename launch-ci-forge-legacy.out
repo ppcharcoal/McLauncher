@@ -1,0 +1,10 @@
+[4225:1026/183713.047497:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[4225:1026/183713.086876:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[4225:1026/183713.092342:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[4225:1026/183713.092425:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")
+[4225:1026/183713.095771:ERROR:dbus/object_proxy.cc:572] Failed to call method: org.freedesktop.DBus.NameHasOwner: object_path= /org/freedesktop/DBus: unknown error type: 
+[4261:1026/183713.141465:ERROR:cc/raster/one_copy_raster_buffer_provider.cc:285] Creation of StagingBuffer's SharedImage failed.
+[4261:1026/183713.141465:ERROR:cc/raster/one_copy_raster_buffer_provider.cc:285] Creation of StagingBuffer's SharedImage failed.
+[4261:1026/183713.141588:ERROR:cc/raster/one_copy_raster_buffer_provider.cc:285] Creation of StagingBuffer's SharedImage failed.
+[4261:1026/183713.141695:ERROR:cc/raster/one_copy_raster_buffer_provider.cc:285] Creation of StagingBuffer's SharedImage failed.
+[4225:1026/183724.420277:ERROR:dbus/bus.cc:406] Failed to connect to the bus: Could not parse server address: Unknown address type (examples of valid types are "tcp" and on UNIX "unix")

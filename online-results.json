@@ -1,0 +1,351 @@
+{
+  "newest": "ci-newest",
+  "old": "ci-1-21-1",
+  "results": {
+    "mojang manifest": {
+      "ok": true,
+      "ms": 116,
+      "info": {
+        "latest": "26.3",
+        "versions": 920
+      }
+    },
+    "fabric supports a recent release": {
+      "ok": true,
+      "ms": 159,
+      "info": {
+        "latestFabric": "26.3",
+        "loader": "0.20.1"
+      }
+    },
+    "create fabric instances": {
+      "ok": true,
+      "ms": 195,
+      "info": [
+        "ci-newest",
+        "ci-1-21-1"
+      ]
+    },
+    "modrinth: install fabric-api with deps (newest)": {
+      "ok": true,
+      "ms": 414,
+      "info": [
+        "Fabric API"
+      ]
+    },
+    "modrinth: install fabric-api (1.21.1)": {
+      "ok": true,
+      "ms": 149,
+      "info": [
+        "Fabric API"
+      ]
+    },
+    "create native Wayland test instance (Fabric 1.20.1)": {
+      "ok": true,
+      "ms": 303,
+      "info": "ci-wayland"
+    },
+    "prepare game files (1.21.1)": {
+      "ok": true,
+      "ms": 5691,
+      "info": {
+        "java": "/home/runner/work/McLauncher/McLauncher/ci-data/runtime/java-runtime-delta/bin/java",
+        "args": 46
+      }
+    },
+    "modrinth search env=all": {
+      "ok": true,
+      "ms": 102,
+      "info": {
+        "total": 19777,
+        "first": [
+          "Fabric API[either,lib]",
+          "Sodium[client]",
+          "Iris Shaders[client]"
+        ]
+      }
+    },
+    "modrinth search env=client": {
+      "ok": true,
+      "ms": 59,
+      "info": {
+        "total": 6578,
+        "first": [
+          "Fabric API[either,lib]",
+          "Sodium[client]",
+          "Iris Shaders[client]"
+        ]
+      }
+    },
+    "modrinth search env=server": {
+      "ok": true,
+      "ms": 63,
+      "info": {
+        "total": 5681,
+        "first": [
+          "Fabric API[either,lib]",
+          "Cloth Config API[either,lib]",
+          "FerriteCore[either]"
+        ]
+      }
+    },
+    "modrinth search env=both": {
+      "ok": true,
+      "ms": 58,
+      "info": {
+        "total": 7439,
+        "first": [
+          "Architectury API[both,lib]",
+          "Puzzles Lib[either,lib]",
+          "oωo (owo-lib)[both,lib]"
+        ]
+      }
+    },
+    "modrinth search env=library": {
+      "ok": true,
+      "ms": 59,
+      "info": {
+        "total": 1178,
+        "first": [
+          "Fabric API[either,lib]",
+          "Cloth Config API[either,lib]",
+          "YetAnotherConfigLib (YACL)[either,lib]"
+        ]
+      }
+    },
+    "modrinth search resourcepack": {
+      "ok": true,
+      "ms": 68,
+      "info": "Fresh Animations"
+    },
+    "modrinth search shader": {
+      "ok": true,
+      "ms": 79,
+      "info": "Complementary Shaders - Reimagined"
+    },
+    "modrinth search modpack": {
+      "ok": true,
+      "ms": 69,
+      "info": "Fabulously Optimized"
+    },
+    "modrinth: sodium + resource pack + shader (auto Iris)": {
+      "ok": true,
+      "ms": 774,
+      "info": {
+        "a": [
+          "Sodium"
+        ],
+        "b": [
+          "Fresh Animations"
+        ],
+        "c": [
+          "Complementary Shaders - Reimagined",
+          "Iris Shaders"
+        ],
+        "mods": [
+          "Fabric API",
+          "Iris Shaders",
+          "Sodium"
+        ]
+      }
+    },
+    "modrinth: project details + versions": {
+      "ok": true,
+      "ms": 88,
+      "info": {
+        "title": "Sodium",
+        "env": "client",
+        "versions": 22
+      }
+    },
+    "modrinth: update check runs": {
+      "ok": true,
+      "ms": 213,
+      "info": 0
+    },
+    "curseforge search mods/library/resourcepack/shader/modpack": {
+      "ok": true,
+      "ms": 5622,
+      "info": {
+        "mod/all": "GeckoLib",
+        "mod/library": "GeckoLib",
+        "resourcepack/all": "Fresh Animations",
+        "shader/all": "Complementary Shaders - Reimagined",
+        "modpack/all": "COBBLEVERSE - Pokemon Adventure [Cobblemon]"
+      }
+    },
+    "curseforge: install mod with dependencies": {
+      "ok": true,
+      "ms": 5133,
+      "info": {
+        "installed": [
+          "Mod Menu",
+          "Text Placeholder API",
+          "Fabric API"
+        ]
+      }
+    },
+    "curseforge: modpack zip import (manifest + POST lookups)": {
+      "ok": true,
+      "ms": 3259,
+      "info": {
+        "mods": [
+          "Just Enough Items (JEI)"
+        ],
+        "blocked": 0
+      }
+    },
+    "modrinth modpack install (.mrpack)": {
+      "ok": true,
+      "ms": 1317,
+      "info": {
+        "name": "Fabulously Optimized",
+        "mc": "26.3",
+        "loader": "0.19.5",
+        "mods": 46,
+        "identified": 46
+      }
+    },
+    "export .mrpack and import it back": {
+      "ok": true,
+      "ms": 365,
+      "info": {
+        "linked": 7,
+        "bundled": 0,
+        "reimported": "ci-export",
+        "mods": 5
+      }
+    },
+    "forge + neoforge version lists": {
+      "ok": true,
+      "ms": 1228,
+      "info": {
+        "forgeMc": 78,
+        "neoMc": [
+          "26.1.2",
+          "26.2",
+          "26.3",
+          "1.20.1"
+        ],
+        "unknownNeo": [],
+        "forge1201": [
+          {
+            "version": "1.20.1-47.4.28",
+            "label": "47.4.28",
+            "stable": true,
+            "recommended": true,
+            "latest": true
+          },
+          {
+            "version": "1.20.1-47.4.27",
+            "label": "47.4.27",
+            "stable": true,
+            "recommended": false,
+            "latest": false
+          }
+        ],
+        "neo1211": [
+          {
+            "version": "21.1.265",
+            "label": "21.1.265",
+            "stable": true,
+            "recommended": false
+          },
+          {
+            "version": "21.1.264",
+            "label": "21.1.264",
+            "stable": true,
+            "recommended": false
+          }
+        ]
+      }
+    },
+    "install neoforge for 1.21.1": {
+      "ok": true,
+      "ms": 14700,
+      "info": {
+        "id": "ci-neoforge",
+        "loaderVersion": "21.1.265",
+        "versionId": "neoforge-21.1.265",
+        "seconds": 15,
+        "args": 70
+      }
+    },
+    "install forge for 1.20.1": {
+      "ok": true,
+      "ms": 16282,
+      "info": {
+        "id": "ci-forge",
+        "loaderVersion": "1.20.1-47.4.28",
+        "versionId": "1.20.1-forge-47.4.28",
+        "seconds": 16,
+        "args": 71
+      }
+    },
+    "install forge for 1.12.2": {
+      "ok": true,
+      "ms": 4051,
+      "info": {
+        "id": "ci-forge-legacy",
+        "loaderVersion": "1.12.2-14.23.5.2859",
+        "versionId": "1.12.2-forge-14.23.5.2859",
+        "seconds": 4,
+        "args": 38
+      }
+    },
+    "modrinth: mods for neoforge (Sodium) and forge (JEI) + forge shader (auto Oculus)": {
+      "ok": true,
+      "ms": 1438,
+      "info": {
+        "a": [
+          "Sodium"
+        ],
+        "b": [
+          "Just Enough Items (JEI)",
+          "MezzConfig"
+        ],
+        "c": [
+          "Complementary Shaders - Reimagined",
+          "Oculus",
+          "Embeddium"
+        ],
+        "neoMods": [
+          "Sodium 0.8.13+mc1.21.1"
+        ],
+        "forgeMods": [
+          "Embeddium 0.3.31+mc1.20.1",
+          "Just Enough Items (JEI) 15.74.0.230",
+          "MezzConfig 0.6.9",
+          "Oculus 1.8.0"
+        ]
+      }
+    },
+    "curseforge: forge mod (Mouse Tweaks) into Forge 1.20.1": {
+      "ok": true,
+      "ms": 2096,
+      "info": [
+        "Mouse Tweaks"
+      ]
+    },
+    "modrinth search with forge/neoforge loaders": {
+      "ok": true,
+      "ms": 1118,
+      "info": {
+        "forge": "Entity Culling",
+        "neo": "Sodium",
+        "neoPack": "BattleArmory TACZ Forge,NeoForge",
+        "cfForge": "GeckoLib"
+      }
+    },
+    "export forge .mrpack and import it back": {
+      "ok": true,
+      "ms": 564,
+      "info": {
+        "linked": 6,
+        "bundled": 0,
+        "imported": "ci-forge-export",
+        "loaderVersion": "1.20.1-47.4.28"
+      }
+    }
+  }
+}

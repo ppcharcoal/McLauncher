@@ -1,0 +1,2 @@
+00:00:00.342 [ERROR] [wlr] [xwayland/server.c:454] Cannot find Xwayland binary "/usr/bin/Xwayland"
+00:00:00.342 [ERROR] [sway/server.c:363] Failed to start Xwayland

@@ -1,0 +1,304 @@
+# McLauncher 0.7.2 — GTNH 2.8.4 (Minecraft 1.7.10)
+# Java: /home/runner/work/McLauncher/McLauncher/ci-data/runtime/java-runtime-delta/bin/java
+[18:38:46] [main/INFO] [LaunchWrapper]: Successfully scanned 284 paths for RFB plugins.
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin gtnhlib@0.7.10 (GTNHLib): com.gtnewhorizon.gtnhlib.rfb.GTNHLibRfbPlugin (jar:file:///home/runner/work/McLauncher/McLauncher/ci-data/instances/gtnh-2-8-4/minecraft/mods/gtnhlib-0.7.10.jar!META-INF/rfb-plugin/gtnhlib.properties)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin hodgepodge@2.6.112 (Hodgepodge): com.mitchej123.hodgepodge.rfb.HodgepodgeRfbPlugin (jar:file:///home/runner/work/McLauncher/McLauncher/ci-data/instances/gtnh-2-8-4/minecraft/mods/hodgepodge-2.6.112.jar!META-INF/rfb-plugin/hodgepodge.properties)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin java@21.0.7 (Java): com.gtnewhorizons.rfbplugins.compat.DummyJavaPlugin (jar:file:/home/runner/work/McLauncher/McLauncher/ci-data/libraries/com/github/GTNewHorizons/lwjgl3ify/2.1.16/lwjgl3ify-2.1.16-forgePatches.jar!/com/gtnewhorizons/retrofuturabootstrap/plugin/PluginLoader.class)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin lwjgl3ify@2.1.16 (LWJGL3ify): me.eigenraven.lwjgl3ify.rfb.Lwjgl3ifyRfbPlugin (jar:file:///home/runner/work/McLauncher/McLauncher/ci-data/instances/gtnh-2-8-4/minecraft/mods/lwjgl3ify-2.1.16.jar!META-INF/rfb-plugin/lwjgl3ify.properties)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin angelica@1.0.0-beta66b (Angelica): com.gtnewhorizons.angelica.loading.rfb.AngelicaRfbPlugin (jar:file:///home/runner/work/McLauncher/McLauncher/ci-data/instances/gtnh-2-8-4/minecraft/mods/angelica-1.0.0-beta66b.jar!META-INF/rfb-plugin/angelica.properties)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin rfb@1.0.11 (RetroFuturaBootstrap): com.gtnewhorizons.rfbplugins.compat.DummyRfbPlugin (jar:file:/home/runner/work/McLauncher/McLauncher/ci-data/libraries/com/github/GTNewHorizons/lwjgl3ify/2.1.16/lwjgl3ify-2.1.16-forgePatches.jar!/com/gtnewhorizons/retrofuturabootstrap/plugin/PluginLoader.class)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin rfb-asm-safety@1.0.11 (RFB ASM Safety): com.gtnewhorizons.rfbplugins.compat.AsmSafetyPlugin (jar:file:///home/runner/work/McLauncher/McLauncher/ci-data/libraries/com/github/GTNewHorizons/lwjgl3ify/2.1.16/lwjgl3ify-2.1.16-forgePatches.jar!META-INF/rfb-plugin/rfb-asm-safety.properties)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructed RFB plugin rfb-modern-java@1.0.11 (RFB modern Java compatibility plugin): com.gtnewhorizons.rfbplugins.compat.ModernJavaCompatibilityPlugin (jar:file:///home/runner/work/McLauncher/McLauncher/ci-data/libraries/com/github/GTNewHorizons/lwjgl3ify/2.1.16/lwjgl3ify-2.1.16-forgePatches.jar!META-INF/rfb-plugin/rfb-modern-java.properties)
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructing tweaker cpw.mods.fml.common.launcher.FMLTweaker
+[18:38:46] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.common.launcher.FMLTweaker
+[18:38:46] [main/INFO] [FML]: Forge Mod Loader version 7.99.40.1614 for Minecraft 1.7.10 loading
+[18:38:46] [main/INFO] [FML]: Java is OpenJDK 64-Bit Server VM, version 21.0.7, running on Linux:amd64:6.17.0-1022-azure, installed at /home/runner/work/McLauncher/McLauncher/ci-data/runtime/java-runtime-delta
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from +unimixins-all-1.7.10-0.1.23.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from angelica-1.0.0-beta66b.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from AppleCore-3.3.7.jar
+[18:38:46] [main/INFO] [FML]: [AppEng] Core Init
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from archaicfix-0.7.7.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from Avaritia-1.77.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from backhand-1.7.7.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from battlegear2-1.5.9-backhand.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from bettercrashes-1.4.0-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from bogosorter-1.2.68-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from bugtorch-1.2.14.jar
+[18:38:46] [main/WARN] [FML]: The coremod cofh.asm.LoadingPlugin does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from coretweaks-0.3.3.6-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from darkerer-1.0.6.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from defaultserverlist-1.6.5.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from duradisplay-1.3.4.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from etfuturum-2.6.2.25-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from gadomancy-1.4.8.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from Galacticraft-3.3.13-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from gravisuiteneo-1.3.6.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from gregtech-5.09.51.482.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from GTNewHorizonsCoreMod-2.7.268.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from gtnhlib-0.7.10.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from HardcoreEnderExpansion-1.12.16-GTNH.jar
+[18:38:46] [main/WARN] [FML]: The coremod net.glease.healer.Healer does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from hodgepodge-2.6.112.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from hydroenergy-1.4.10.jar
+[18:38:46] [main/WARN] [FML]: The coremod ic2.core.coremod.IC2core does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from logisticspipes-1.4.24-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker me.eigenraven.lwjgl3ify.relauncher.Lwjgl3ifyRelauncherTweaker from lwjgl3ify-2.1.16.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from matter-manipulator-0.0.51-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from mobsinfo-0.5.6-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from modularui-1.2.20.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from modularui2-2.2.18-1.7.10.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from navigator-1.0.17.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from notenoughIDs-2.1.10.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from nutrition-0.1.3.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from postea-1.1.3.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from RandomThings-2.6.6.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from salisarcana-1.1.33-GTNH.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from ServerUtilities-2.2.2.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from sharewhereiam-2.1.4.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from structurelib-1.4.23.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from tcneiadditions-1.5.4.jar
+[18:38:46] [main/WARN] [FML]: The coremod thaumcraft.codechicken.core.launch.DepLoader does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from ThaumcraftResearchTweaks-1.3.0.jar
+[18:38:46] [main/WARN] [FML]: The coremod jcm2606.thaumicmachina.asm.TMFMLLoadingPlugin does not have a MCVersion annotation, it may cause issues with this version of Minecraft
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from thaumicboots-1.4.14.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from ThaumicTinkerer-2.11.27.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from torohealth-1.2.0.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from visualprospecting-1.4.8.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from WitcheryExtras-1.3.8.jar
+[18:38:46] [main/INFO] [FML]: Loading tweaker org.spongepowered.asm.launch.MixinTweaker from WitchingGadgets-1.7.25-GTNH.jar
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructing tweaker cpw.mods.fml.common.launcher.FMLInjectionAndSortingTweaker
+[18:38:46] [main/INFO] [LaunchWrapper]: Constructing tweaker org.spongepowered.asm.launch.MixinTweaker
+[18:38:46] [main/INFO] [mixin]: SpongePowered MIXIN Subsystem Version=0.8.7 Source=file:/home/runner/work/McLauncher/McLauncher/ci-data/instances/gtnh-2-8-4/minecraft/mods/+unimixins-all-1.7.10-0.1.23.jar Service=LaunchWrapper Env=CLIENT
+[18:38:47] [main/INFO] [MixinBooter]: MixinBootstrap Initializing...
+[18:38:47] [main/INFO] [mixin]: Compatibility level set to JAVA_8
+[18:38:47] [main/INFO] [GasStation Core Plugin]: Initializing GasStationCore
+[18:38:47] [main/INFO] [unimixins]: Instantiating AllCore
+[18:38:47] [main/INFO] [unimixins]: Instantiating CompatCore
+[18:38:47] [main/INFO] [unimixins-mixinextras]: Instantiating MixinExtrasCore
+[18:38:47] [main/INFO] [coretweaks]: Instantiating CoreTweaksPlugin
+[18:38:47] [main/INFO] [coretweaks]: Disabling cloud height check fix because NotFine is present.
+[18:38:47] [main/INFO] [coretweaks]: Disabling forge chat link crash fix because Hodgepodge has the same fix enabled.
+[18:38:47] [main/INFO] [coretweaks]: Adding transformer exclusions for 5 library packages
+[18:38:47] [main/INFO] [HodgepodgeStringPooler]: Setting up string pooler:  (Guava strong)
+[18:38:47] [main/INFO] [HodgepodgeCoreCompat]: Disabled CoreTweaks conflicting mixin: enhanceMapStorageErrors
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/INFO] [LaunchWrapper]: Constructing tweaker me.eigenraven.lwjgl3ify.relauncher.Lwjgl3ifyRelauncherTweaker
+[18:38:47] [main/INFO] [FML]: Lwjgl3ify reparseable status: true (name: lwjgl3ify-2.1.16.jar)
+[18:38:47] [main/INFO] [FML]: Removed lwjgl3ify from the list of non-mod coremods
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/WARN] [LaunchWrapper]: Duplicate tweaker class org.spongepowered.asm.launch.MixinTweaker
+[18:38:47] [main/INFO] [LaunchWrapper]: Constructing tweaker cpw.mods.fml.common.launcher.FMLDeobfTweaker
+[18:38:47] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.common.launcher.FMLInjectionAndSortingTweaker
+[18:38:47] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.common.launcher.FMLInjectionAndSortingTweaker
+[18:38:47] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:47] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:47] [main/INFO] [coretweaks]: Replacing cpw.mods.fml.common.asm.transformers.SideTransformer with 2 wrappers: [CachedTransformerWrapper, PatternConditionalTransformerWrapper]
+[18:38:48] [main/INFO] [FML]: Found valid fingerprint for Minecraft. Certificate fingerprint cd99959656f753dc28d863b46769f7f8fbaefcfc
+[18:38:48] [main/ERROR] [FML]: FML appears to be missing any signature data. This is not a good thing
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [coretweaks]: Replacing net.minecraftforge.classloading.FluidIdTransformer with 2 wrappers: [CachedTransformerWrapper, PatternConditionalTransformerWrapper]
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [AE2-ApiRepairer]: AE2 ApiFixer Installed
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [IC2-core]: Extracted library EJML-core-0.26.jar.
+[18:38:48] [main/INFO] [IC2-core]: Loaded library EJML-core-0.26.jar.
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [STDOUT]: [pcl.opensecurity.util.SoundUnpack:load:32]: Extracting sounds from: assets/opensecurity/sounds/alarms/
+[18:38:48] [main/INFO] [STDOUT]: [pcl.opensecurity.util.SoundUnpack:load:44]: Extracting file: klaxon2.ogg
+[18:38:48] [main/INFO] [STDOUT]: [pcl.opensecurity.util.SoundUnpack:load:44]: Extracting file: klaxon1.ogg
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:48] [main/INFO] [LaunchWrapper]: Installing tweaker org.spongepowered.asm.launch.MixinTweaker
+[18:38:48] [main/INFO] [mixin]: Initialised Mixin FML Remapper Adapter with cpw.mods.fml.common.asm.transformers.deobf.FMLDeobfuscatingRemapper@1cba0321
+[18:38:48] [main/INFO] [BugTorch]: NotFine detected, skipping redundant early mixins.
+[18:38:49] [main/INFO] [lwjgl3ify]: Not loading the following EARLY mixins: []
+[18:38:49] [main/INFO] [com.dreammaster.coremod.DepLoader]: No dependencies found.
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker me.eigenraven.lwjgl3ify.relauncher.Lwjgl3ifyRelauncherTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.common.launcher.FMLDeobfTweaker
+[18:38:49] [main/INFO] [coretweaks]: Replacing cpw.mods.fml.common.asm.transformers.DeobfuscationTransformer with 1 wrapper: [CachedTransformerWrapper]
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [TX Loader]: Successfully fetched Minecraft versions.
+[18:38:49] [main/INFO] [TX Loader]: Successfully read config file.
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.relauncher.CoreModManager$FMLPluginWrapper
+[18:38:49] [main/INFO] [LaunchWrapper]: Constructing tweaker cpw.mods.fml.common.launcher.TerminalTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Constructing tweaker org.spongepowered.asm.mixin.EnvironmentStateTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Constructing tweaker com.gtnewhorizons.angelica.loading.fml.tweakers.IncompatibleModsDisablerTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Constructing tweaker com.gtnewhorizons.angelica.loading.fml.tweakers.XaerosTransformerDisablerTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Constructing tweaker com.gtnewhorizons.angelica.loading.fml.tweakers.SodiumLateTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker cpw.mods.fml.common.launcher.TerminalTweaker
+[18:38:49] [main/INFO] [coretweaks]: Replacing cpw.mods.fml.common.asm.transformers.TerminalTransformer with 1 wrapper: [CachedTransformerWrapper]
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker org.spongepowered.asm.mixin.EnvironmentStateTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker com.gtnewhorizons.angelica.loading.fml.tweakers.IncompatibleModsDisablerTweaker
+[18:38:49] [main/INFO] [FML]: [Angelica/IncompatibleModsDisablerTweaker] Disabling Optifine, Fastcraft, BetterFPS, and other incompatible mods (if present)
+[18:38:49] [main/INFO] [MixinExtras|Service]: Initializing MixinExtras via com.llamalad7.mixinextras.service.MixinExtrasServiceImpl(version=0.5.0).
+[18:38:49] [main/INFO] [coretweaks]: Transforming ModDiscoverer to skip known libraries
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker com.gtnewhorizons.angelica.loading.fml.tweakers.XaerosTransformerDisablerTweaker
+[18:38:49] [main/INFO] [LaunchWrapper]: Installing tweaker com.gtnewhorizons.angelica.loading.fml.tweakers.SodiumLateTweaker
+[18:38:51] [main/WARN] [mixin]: @Redirect conflict. Skipping mixins.archaicfix.early.json:client.core.MixinMinecraft from mod archaicfix->@Redirect::getFancyGrass(Lnet/minecraft/client/settings/GameSettings;)Z with priority 999, already redirected by mixins.angelica.early.json:sodium.MixinMinecraft from mod angelica->@Redirect::sodium$overrideFancyGrass(Lnet/minecraft/client/settings/GameSettings;)Z with priority 1000
+[18:38:51] [main/INFO] [MobiusCore]: Current code is OBFUSCATED
+[18:38:51] [main/INFO] [MobiusCore]: Found cpw.mods.fml.common.FMLCommonHandler with checksum F626A08BBC07AE3F7D88072FDFDAE36E
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in onPreServerTick ()V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in onPostServerTick ()V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in onPreWorldTick (Lahb;)V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in onPostWorldTick (Lahb;)V
+[18:38:51] [main/INFO] [unimixins]: Transforming FMLCommonHandler to add hook for enhancing crash reports
+[18:38:51] [main/INFO] [MobiusCore]: Switching injection mode to FORGE
+[18:38:51] [main/INFO] [MobiusCore]: [MobiusCore] Found net.minecraft.world.World [ ahb ] with checksum 255B2942C1AC02CDE1530A0A9D24778F
+[18:38:51] [main/INFO] [MobiusCore]: Found World.updateEntities()...
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in h ()V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in h ()V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in h ()V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in h ()V
+[18:38:51] [main/INFO] [MobiusCore]: Found World.<init> (Lazc;Ljava/lang/String;Lahj;Laqo;Lqi;)V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in <init> (Lazc;Ljava/lang/String;Lahj;Laqo;Lqi;)V
+[18:38:51] [main/INFO] [MobiusCore]: Successful injection in <init> (Lazc;Ljava/lang/String;Lahj;Laqo;Lqi;)V
+[18:38:51] [main/WARN] [mixin]: @Final field field_73038_N:Ljava/util/Set; in mixins.hodgepodge.early.json:minecraft.MixinWorldClient_FixAllocations from mod hodgepodge should be final
+[18:38:51] [main/INFO] [FML]: [GadomancyTransformer] Transforming sv: net.minecraft.entity.EntityLivingBase
+[18:38:52] [main/INFO] [AE2-CORE]: func_146977_a(Lnet/minecraft/inventory/Slot;)V - Transformed
+[18:38:52] [main/INFO] [AE2-CORE]: func_146977_a_original(Lnet/minecraft/inventory/Slot;)V - New Method
+[18:38:52] [main/INFO] [AE2-CORE]: func_146977_a(Lnet/minecraft/inventory/Slot;)V - Invoke Virtual
+[18:38:52] [main/INFO] [MobiusCore]: [MobiusCore] Found net.minecraft.world.WorldServer [ mt ] with checksum 7219F4EC95BA5E07156A57A9174B9D6E
+[18:38:52] [main/INFO] [MobiusCore]: Successful injection in b ()V
+[18:38:52] [main/INFO] [MobiusCore]: Successful injection in b ()V
+[18:38:52] [main/INFO]: Setting user: CiPlayer
+[18:38:52] [main/INFO] [OpenComputers]: Successfully patched sw.recreateLeash.
+[18:38:53] [main/INFO] [EnderCore]: Transforming Class [net.minecraft.entity.projectile.EntityArrow], Method [func_70071_h_]
+[18:38:53] [main/INFO] [EnderCore]: Transforming net.minecraft.entity.projectile.EntityArrow Finished.
+[18:38:53] [main/INFO] [EnderCore]: Transforming Class [net.minecraft.item.ItemStack], Method [func_77953_t]
+[18:38:53] [main/INFO] [EnderCore]: Transforming net.minecraft.item.ItemStack Finished.
+[18:38:53] [main/INFO] [EnderCore]: Transforming Class [net.minecraft.inventory.ContainerFurnace], Method [func_82846_b]
+[18:38:53] [main/INFO] [EnderCore]: Transforming net.minecraft.inventory.ContainerFurnace Finished.
+[18:38:53] [main/INFO] [com.prupe.mcpatcher.MCPatcherUtils]: MCPatcherUtils initialized:
+[18:38:53] [Client thread/INFO] [net.blay09.mods.defaultkeys.DefaultKeys]: Restoring local config values...
+[18:38:53] [Client thread/INFO]: LWJGL Version: 3.3.3+5
+[18:38:53] [Client thread/INFO] [lwjgl3ify]: Updated raw mouse input mode to false
+[18:38:54] [Client thread/INFO] [RenderSystem]: OpenGL 4.5 detected, enabling DSA.
+[18:38:54] [Client thread/INFO] [AngelicaShaders]: Shaders are disabled because no valid shaderpack is selected
+[18:38:54] [Client thread/INFO] [AngelicaShaders]: Shaders are disabled
+[18:38:54] [Client thread/INFO] [STDOUT]: [tv.twitch.StandardCoreAPI:<init>:16]: If on Windows, make sure to provide all of the necessary dll's as specified in the twitchsdk README. Also, make sure to set the PATH environment variable to point to the directory containing the dll's.
+[18:38:54] [Client thread/ERROR]: Couldn't initialize twitch stream
+[18:38:54] [Client thread/INFO] [ForgeRelocation]: transforming: net.minecraft.client.renderer.RenderBlocks
+[18:38:54] [Client thread/INFO] [ForgeRelocation]: blm net.minecraft.client.renderer.RenderBlocks b (Laji;III)Z
+[18:38:54] [Client thread/WARN] [mixin]: @Inject(@At("INVOKE")) Shift.BY=2 on mixins.angelica.early.json:mcpatcherforge.ctm.MixinRenderBlocks from mod angelica::handler$zhb000$angelica$tweakPaneRenderer exceeds the maximum allowed value: 0. Increase the value of maxShiftBy to suppress this warning.
+[18:38:54] [Client thread/WARN] [mixin]: @Inject(@At("INVOKE")) Shift.BY=2 on mixins.angelica.early.json:mcpatcherforge.ctm.MixinRenderBlocks from mod angelica::handler$zhb000$angelica$tweakStainedPaneRenderer exceeds the maximum allowed value: 0. Increase the value of maxShiftBy to suppress this warning.
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: initializing Tilesheet API...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: initializing Better Glass...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: initializing Connected Textures...
+[18:38:54] [Client thread/INFO] [betterloadingscreen]: Turned Forge splash screen off in splash.properties
+[18:38:54] [Client thread/WARN] [betterloadingscreen]: Resource loader not loaded, not initialising early
+[18:38:54] [Client thread/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Better Loading Screen GTNH, TX Loader Forced Resources
+[18:38:54] [Client thread/INFO] [TX Loader]: Downloading https://launcher.mojang.com/v1/objects/e80d9b3bf5085002218d4be59e668bac718abbc6/client.jar to /home/runner/.cache/txloader/1.7.10/client.jar
+[18:38:54] [Client thread/INFO] [TX Loader]: Successfully added 1 assets. (0 skipped, 0 failed)
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (pre)...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (pre)...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (pre)...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (post)...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [CTM/WARNING]: could not load all textures/blocks tiles (3 remaining)
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (post)...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (post)...
+[18:38:54] [Client thread/INFO] [MCPatcherForge]: [Texture Pack/INFO]: done (0.048s elapsed, mem usage +37.3MB)
+
+[18:38:54] [Client thread/INFO] [betterloadingscreen]: Not using custom tooltips
+[18:38:55] [BLS Splash renderer/INFO] [Angelica]: Current thread: BLS Splash renderer
+[18:38:55] [BLS Splash renderer/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Better Loading Screen GTNH, TX Loader Forced Resources
+[18:38:55] [BLS Splash renderer/INFO] [TX Loader]: Successfully added 0 assets. (1 skipped, 0 failed)
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (pre)...
+[18:38:55] [Client thread/INFO] [MinecraftForge]: Attempting early MinecraftForge initialization
+[18:38:55] [Client thread/INFO] [FML]: MinecraftForge v10.13.4.1614 Initialized
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [CTM/WARNING]: could not load all textures/blocks tiles (3 remaining)
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: done (0.029s elapsed, mem usage +17.8MB)
+
+[18:38:55] [Client thread/INFO] [FML]: Replaced 183 ore recipies
+[18:38:55] [Client thread/INFO] [MinecraftForge]: Completed early MinecraftForge initialization
+[18:38:55] [Client thread/INFO] [FML]: [AppEng] Core Init
+[18:38:55] [BLS Splash renderer/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Better Loading Screen GTNH, Default, TX Loader Forced Resources
+[18:38:55] [BLS Splash renderer/INFO] [TX Loader]: Successfully added 0 assets. (1 skipped, 0 failed)
+[18:38:55] [Client thread/INFO] [FML]: Found 0 mods from the command line. Injecting into mod discoverer
+[18:38:55] [Client thread/INFO] [FML]: Searching /home/runner/work/McLauncher/McLauncher/ci-data/instances/gtnh-2-8-4/minecraft/mods for mods
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (pre)...
+[18:38:55] [Client thread/INFO] [coretweaks]: Loading JarDiscovererCache
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [CTM/WARNING]: could not load all textures/blocks tiles (3 remaining)
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: done (0.081s elapsed, mem usage -409.1MB)
+
+[18:38:55] [BLS Splash renderer/INFO]: Reloading ResourceManager: Default, FMLFileResourcePack:Better Loading Screen GTNH, Default, TX Loader Forced Resources
+[18:38:55] [BLS Splash renderer/INFO] [TX Loader]: Successfully added 0 assets. (1 skipped, 0 failed)
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (pre)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Tilesheet API (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [CTM/WARNING]: could not load all textures/blocks tiles (3 remaining)
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Connected Textures (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: refreshing Better Glass (post)...
+[18:38:55] [BLS Splash renderer/INFO] [MCPatcherForge]: [Texture Pack/INFO]: done (0.034s elapsed, mem usage +27.3MB)
+
+[18:38:56] [Client thread/WARN] [ExtraUtilities]: Mod ExtraUtilities is missing the required element 'version' and a version.properties file could not be found. Falling back to metadata version 1.2.12
+# exited with code 143
