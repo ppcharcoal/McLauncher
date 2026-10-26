@@ -1,5 +1,5 @@
-McLauncher 0.7.1
+McLauncher 0.7.2
 
-- **Native Wayland with Forge**: Forge 1.20.1 packs (for example Liminal Industries) crashed on start with "GLFW error before init: Wayland: The platform does not provide the window position". Forge's early loading window asks for a window position, which Wayland doesn't have. McLauncher's GLFW shim now answers that request and hides the harmless "not available on Wayland" errors from the game, while real errors still come through.
+- **Smoother instance header**: the blurred, icon-colored banner at the top of an instance page no longer ends in a hard-edged block. It now fades out softly at the bottom and sides, so it blends into Minimal, Modern Glass and Dark Matter (Dark Matter keeps it very subtle over the starfield). The line under the header is gone too.
 
 Install: see the README for Arch Linux and Windows instructions.

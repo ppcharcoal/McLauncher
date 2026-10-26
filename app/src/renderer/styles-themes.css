@@ -6,9 +6,10 @@
 /* ---------- shared: styles with a painted background ---------- */
 :root[data-style="glass"] body, :root[data-style="aero"] body, :root[data-style="darkmatter"] body { background-attachment: fixed; }
 :root[data-style="glass"] #app, :root[data-style="aero"] #app, :root[data-style="darkmatter"] #app { position: relative; z-index: 1; }
-:root[data-style="glass"] .hero::after, :root[data-style="aero"] .hero::after, :root[data-style="darkmatter"] .hero::after {
-  background: linear-gradient(180deg, transparent 40%, color-mix(in srgb, var(--bg) 35%, transparent));
-}
+/* the backdrop's own mask fades it out; no tinted overlay box on painted backgrounds */
+:root[data-style="glass"] .hero::after, :root[data-style="aero"] .hero::after, :root[data-style="darkmatter"] .hero::after { display: none; }
+:root[data-style="glass"] .hero .backdrop { opacity: .35; }
+:root[data-style="darkmatter"] .hero .backdrop { opacity: .22; filter: blur(48px) saturate(1.1); }
 :root[data-style="glass"] .hero, :root[data-style="aero"] .hero, :root[data-style="darkmatter"] .hero { border-bottom-color: transparent; }
 
 /* =====================================================================

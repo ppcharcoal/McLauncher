@@ -173,8 +173,11 @@ select.input option { background: var(--panel); }
 .status-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 9px 3px 7px; border-radius: 20px; background: color-mix(in srgb, var(--panel) 88%, transparent); color: var(--accent); font-size: 12px; font-weight: 600; }
 
 /* ---------- instance ---------- */
-.hero { position: relative; overflow: hidden; border-bottom: 1px solid var(--line); }
-.hero .backdrop { position: absolute; inset: -40px; background-size: cover; background-position: center; filter: blur(38px) saturate(1.2); opacity: .45; transform: scale(1.1); }
+.hero { position: relative; overflow: hidden; border-bottom: 0; }
+.hero .backdrop { position: absolute; inset: -40px -40px 0; background-size: cover; background-position: center; filter: blur(38px) saturate(1.2); opacity: .45; transform: scale(1.1); transform-origin: top center;
+  /* fade out downward and toward the sides so the banner melts into the page instead of ending in a hard edge */
+  -webkit-mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.55) 45%, transparent 92%), linear-gradient(90deg, transparent 0%, #000 22%, #000 78%, transparent 100%);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(180deg, #000 0%, rgba(0,0,0,.55) 45%, transparent 92%), linear-gradient(90deg, transparent 0%, #000 22%, #000 78%, transparent 100%); mask-composite: intersect; }
 .hero .backdrop.pixelbg { image-rendering: pixelated; filter: blur(30px); }
 .hero::after { content: ''; position: absolute; inset: 0; background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 25%, transparent), var(--bg) 96%); }
 .hero-inner { position: relative; z-index: 1; display: flex; gap: 26px; align-items: flex-end; padding: 64px 36px 26px; max-width: 1280px; margin: 0 auto; }

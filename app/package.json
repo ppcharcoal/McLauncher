@@ -1,7 +1,7 @@
 {
   "name": "mclauncher",
   "productName": "McLauncher",
-  "version": "0.7.1",
+  "version": "0.7.2",
   "description": "A simple, fast Minecraft launcher with Fabric, Forge, NeoForge, Modrinth and CurseForge support",
   "main": "src/main/main.js",
   "author": "ppcharcoal <pipesior@gmail.com>",
