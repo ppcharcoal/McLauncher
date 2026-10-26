@@ -1,0 +1,33 @@
+ok - mojang manifest (110 ms) {"latest":"26.3","versions":920}
+ok - fabric supports a recent release (170 ms) {"latestFabric":"26.3","loader":"0.20.1"}
+ok - create fabric instances (242 ms) ["ci-newest","ci-1-21-1"]
+ok - modrinth: install fabric-api with deps (newest) (349 ms) ["Fabric API"]
+ok - modrinth: install fabric-api (1.21.1) (885 ms) ["Fabric API"]
+ok - create native Wayland test instance (Fabric 1.20.1) (935 ms) "ci-wayland"
+ok - prepare game files (1.21.1) (7657 ms) {"java":"D:\\a\\McLauncher\\McLauncher\\ci-data\\runtime\\java-runtime-delta\\bin\\javaw.exe","args":47}
+ok - modrinth search env=all (152 ms) {"total":19777,"first":["Fabric API[either,lib]","Sodium[client]","Iris Shaders[client]"]}
+ok - modrinth search env=client (100 ms) {"total":6578,"first":["Fabric API[either,lib]","Sodium[client]","Iris Shaders[client]"]}
+ok - modrinth search env=server (94 ms) {"total":5681,"first":["Fabric API[either,lib]","Cloth Config API[either,lib]","FerriteCore[either]"]}
+ok - modrinth search env=both (86 ms) {"total":7439,"first":["Architectury API[both,lib]","Puzzles Lib[either,lib]","oωo (owo-lib)[both,lib]"]}
+ok - modrinth search env=library (97 ms) {"total":1178,"first":["Fabric API[either,lib]","Cloth Config API[either,lib]","YetAnotherConfigLib (YACL)[either,lib]"]}
+ok - modrinth search resourcepack (148 ms) "Fresh Animations"
+ok - modrinth search shader (148 ms) "Complementary Shaders - Reimagined"
+ok - modrinth search modpack (98 ms) "Fabulously Optimized"
+ok - modrinth: sodium + resource pack + shader (auto Iris) (2147 ms) {"a":["Sodium"],"b":["Fresh Animations"],"c":["Complementary Shaders - Reimagined","Iris Shaders"],"mods":["Fabric API","Iris Shaders","Sodium"]}
+ok - modrinth: project details + versions (61 ms) {"title":"Sodium","env":"client","versions":22}
+ok - modrinth: update check runs (350 ms) 0
+ok - curseforge search mods/library/resourcepack/shader/modpack (5466 ms) {"mod/all":"GeckoLib","mod/library":"GeckoLib","resourcepack/all":"Fresh Animations","shader/all":"Complementary Shaders - Reimagined","modpack/all":"COBBLEVERSE - Pokemon Adventure [Cobblemon]"}
+ok - curseforge: install mod with dependencies (4962 ms) {"installed":["Mod Menu","Text Placeholder API","Fabric API"]}
+ok - curseforge: modpack zip import (manifest + POST lookups) (3280 ms) {"mods":["Just Enough Items (JEI)"],"blocked":0}
+ok - modrinth modpack install (.mrpack) (1397 ms) {"name":"Fabulously Optimized","mc":"26.3","loader":"0.19.5","mods":46,"identified":46}
+ok - export .mrpack and import it back (925 ms) {"linked":7,"bundled":0,"reimported":"ci-export","mods":5}
+ok - forge + neoforge version lists (1166 ms) {"forgeMc":78,"neoMc":["26.1.2","26.2","26.3","1.20.1"],"unknownNeo":[],"forge1201":[{"version":"1.20.1-47.4.28","label":"47.4.28","stable":true,"recommended":true,"latest":true},{"version":"1.20.1-47.4.27","label":"47.4.27","stable":true,"recommended":false,"latest":false}],"neo1211":[{"version":"2
+ok - install neoforge for 1.21.1 (16239 ms) {"id":"ci-neoforge","loaderVersion":"21.1.265","versionId":"neoforge-21.1.265","seconds":16,"args":71}
+ok - install forge for 1.20.1 (18491 ms) {"id":"ci-forge","loaderVersion":"1.20.1-47.4.28","versionId":"1.20.1-forge-47.4.28","seconds":18,"args":72}
+ok - install forge for 1.12.2 (3000 ms) {"id":"ci-forge-legacy","loaderVersion":"1.12.2-14.23.5.2859","versionId":"1.12.2-forge-14.23.5.2859","seconds":3,"args":38}
+ok - modrinth: mods for neoforge (Sodium) and forge (JEI) + forge shader (auto Oculus) (2145 ms) {"a":["Sodium"],"b":["Just Enough Items (JEI)","MezzConfig"],"c":["Complementary Shaders - Reimagined","Oculus","Embeddium"],"neoMods":["Sodium 0.8.13+mc1.21.1"],"forgeMods":["Embeddium 0.3.31+mc1.20.1","Just Enough Items (JEI) 15.74.0.230","MezzConfig 0.6.9","Oculus 1.8.0"]}
+ok - curseforge: forge mod (Mouse Tweaks) into Forge 1.20.1 (2085 ms) ["Mouse Tweaks"]
+ok - modrinth search with forge/neoforge loaders (1482 ms) {"forge":"Entity Culling","neo":"Sodium","neoPack":"BattleArmory TACZ Forge,NeoForge","cfForge":"GeckoLib"}
+ok - export forge .mrpack and import it back (652 ms) {"linked":6,"bundled":0,"imported":"ci-forge-export","loaderVersion":"1.20.1-47.4.28"}
+
+all online checks passed
